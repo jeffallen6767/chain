@@ -10,14 +10,18 @@ var chain = require("./index"),
   tests = {
     "sync test chain.hash.sha256()": function(test) {
       data.sha256.forEach(function(pair) {
+        test.startTime();
         var result = chain.hash.sha256(pair[0]);
+        test.endTime();
         test.assert.identical(result, pair[1]);
       });
       test.done();
     },
     "async test chain.hash.sha256()": function(test) {
       data.sha256.forEach(function(pair) {
+        test.startTime();
         chain.hash.sha256(pair[0], function(result) {
+          test.endTime();
           test.assert.identical(result, pair[1]);
         });
       });

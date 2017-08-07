@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/jeffallen6767/chain#readme",
   "dependencies": {
-
+    "keccak-p-js" : "https://github.com/jeffallen6767/keccak-p-js.git",
+    "sha-256-js" : "https://github.com/jeffallen6767/sha-256-js.git",
+    "testing" : "https://github.com/jeffallen6767/testing.git"
   }
 }

@@ -1,6 +1,6 @@
 var hash = {
-  "sha256": require("sha256"),
-  "keccak": require("keccak-p-js")
+  "sha256": require("../sha-256-js"),
+  "keccak": require("../keccak-p-js")
 };
 
 module.exports = hash;

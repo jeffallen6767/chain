@@ -1,0 +1,9 @@
+[submodule "sha-256-js"]
+	path = sha-256-js
+	url = https://github.com/jeffallen6767/sha-256-js.git
+[submodule "keccak-p-js"]
+	path = keccak-p-js
+	url = https://github.com/jeffallen6767/keccak-p-js.git
+[submodule "testing"]
+	path = testing
+	url = https://github.com/jeffallen6767/testing.git

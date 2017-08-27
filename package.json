@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",
@@ -16,9 +16,11 @@
     "url": "https://github.com/jeffallen6767/chain/issues"
   },
   "homepage": "https://github.com/jeffallen6767/chain#readme",
+  "devDependencies": {
+    "testing": "https://github.com/jeffallen6767/testing.git"
+  },
   "dependencies": {
     "keccak-p-js" : "https://github.com/jeffallen6767/keccak-p-js.git",
-    "sha-256-js" : "https://github.com/jeffallen6767/sha-256-js.git",
-    "testing" : "https://github.com/jeffallen6767/testing.git"
+    "sha-256-js" : "https://github.com/jeffallen6767/sha-256-js.git"
   }
 }

@@ -16,19 +16,7 @@ var
   files = fs.readdirSync(srcPath),
   fileLines = [FILE_WARNING, EXPORT_START],
   fileText;
-  
-  /*
-  allFilesInSrcDir = files.reduce(function(acc, file, idx){
-    var
-      parts = file.split("."),
-      key = parts[0],
-      val = "./src/" + file;
-    acc[key] = 'require("' + val + '")';
-    return acc;
-  }, ""),
-  .join(NEW_LINE);
-  */
-  
+
 files.forEach(function(file) {
   var
     parts = file.split("."),

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "node build.js",
     "test": "node test.js"
   },
   "repository": {
@@ -11,7 +12,7 @@
     "url": "git+https://github.com/jeffallen6767/chain.git"
   },
   "author": "jeff allen",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/jeffallen6767/chain/issues"
   },
@@ -20,7 +21,7 @@
     "testing": "https://github.com/jeffallen6767/testing.git"
   },
   "dependencies": {
-    "keccak-p-js" : "https://github.com/jeffallen6767/keccak-p-js.git",
-    "sha-256-js" : "https://github.com/jeffallen6767/sha-256-js.git"
+    "keccak-p-js": "https://github.com/jeffallen6767/keccak-p-js.git",
+    "sha-256-js": "https://github.com/jeffallen6767/sha-256-js.git"
   }
 }

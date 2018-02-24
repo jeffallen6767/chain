@@ -13,15 +13,19 @@ var
       "data": "The third block..."
     },
   },
+  difficulty = 1, // NOTE: don't set this too high...lol... or you'll really be mining :)
   tests = {
     "sync test chain.block.create()": function(test, chain) {
       Object.keys(data).forEach(function(key, idx) {
         test.startTime();
         var 
+          random_nonce = parseInt(
+            ((Math.random() + "").slice(-15)).replace(".", "")
+          ),
           block = chain.block.create(
-            data[key]
+            data[key], difficulty++, random_nonce
           );
-        //console.log(idx, key, block);
+        console.log(idx, key, block);
         test.endTime();
         test.assert.identical(
           JSON.stringify(data[key]), 

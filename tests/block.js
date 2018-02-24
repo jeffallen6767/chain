@@ -19,8 +19,10 @@ var
       Object.keys(data).forEach(function(key, idx) {
         test.startTime();
         var 
+          max_digits = 15,
+          random_number = Math.floor(Math.random() * max_digits) - max_digits,
           random_nonce = parseInt(
-            ((Math.random() + "").replace(".", "").slice(-15))
+            ((Math.random() + "").replace(".", "").slice(random_number))
           ),
           block = chain.block.create(
             data[key], difficulty++, random_nonce

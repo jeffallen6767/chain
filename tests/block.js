@@ -20,7 +20,7 @@ var
         test.startTime();
         var 
           random_nonce = parseInt(
-            ((Math.random() + "").slice(-15)).replace(".", "")
+            ((Math.random() + "").replace(".", "").slice(-15))
           ),
           block = chain.block.create(
             data[key], difficulty++, random_nonce

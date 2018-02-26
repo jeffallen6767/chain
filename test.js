@@ -4,21 +4,31 @@ var
   fs = require("fs"),
   testDir = "./tests",
   files = fs.readdirSync(testDir),
-  tests = {};
+  tests = {},
+  args = [].slice.call(process.argv),
+  match = args.length > 1 && args[2] + ".js";
+
+/*
+args.forEach(function (val, index, array) {
+  console.log(index + ': ' + val);
+});
+*/
 
 files.forEach(function(file) {
-  var 
-    testPath = [testDir, file].join("/"),
-    testData = require(testPath),
-    testKeys = Object.keys(testData);
-  
-  testKeys.forEach(function(testKey) {
+  if (!match || match == file) {
     var 
-      test = testData[testKey],
-      key = [testPath, testKey].join(" - ");
+      testPath = [testDir, file].join("/"),
+      testData = require(testPath),
+      testKeys = Object.keys(testData);
     
-    tests[key] = test;
-  });
+    testKeys.forEach(function(testKey) {
+      var 
+        test = testData[testKey],
+        key = [testPath, testKey].join(" - ");
+      
+      tests[key] = test;
+    });
+  }
 });
 
 tester.run(tests, context);

@@ -65,7 +65,19 @@ var
       }
       
       if (mining) {
-        console.log("BLOCKHASH FOUND!!! mining difficulty", difficulty, "in", elapsed, "seconds @", perSecond, "/per second", newBlock.hash, newBlock.nonce, lastVal, elapsed);
+        console.log(
+          "BLOCKHASH FOUND!!! mining difficulty", 
+          difficulty, 
+          "in", 
+          elapsed, 
+          "seconds @", 
+          perSecond, 
+          "/per second", 
+          newBlock.hash, 
+          newBlock.nonce, 
+          lastVal, 
+          elapsed
+        );
       }
       
       blockChain.push(newBlock);

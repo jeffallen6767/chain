@@ -6,15 +6,11 @@ var
   files = fs.readdirSync(testDir),
   tests = {},
   args = [].slice.call(process.argv),
-  match = args.length > 1 && args[2] + ".js";
+  match = args.length > 2 ? args[2] + ".js" : false;
 
-/*
-args.forEach(function (val, index, array) {
-  console.log(index + ': ' + val);
-});
-*/
-
+// iterate over all test files
 files.forEach(function(file) {
+  // if we are running all tests or just one test that matches
   if (!match || match == file) {
     var 
       testPath = [testDir, file].join("/"),

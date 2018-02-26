@@ -83,6 +83,29 @@ var
       blockChain.push(newBlock);
       
       return newBlock;
+    },
+    "getBlockHashes": function() {
+      return blockChain.reduce(function(acc, block) {
+        acc.push(
+          block.hash
+        );
+        return acc;
+      }, []);
+    },
+    "getUserBalance": function(userHash) {
+      return blockChain.reduce(function(total, block) {
+        var
+          transactions = (block.data && Array.isArray(block.data.transactions) && block.data.transactions) || [];
+        transactions.forEach(function(transaction) {
+          if (transaction.sender === userHash) {
+            total -= transaction.amount;
+          }
+          if (transaction.receiver === userHash) {
+            total += transaction.amount;
+          }
+        });
+        return total;
+      }, 0);
     }
   };
 

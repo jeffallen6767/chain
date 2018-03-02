@@ -1,4 +1,4 @@
-// integration tests
+// INTEGRATION TESTS
 var 
   MINING_DIFFICULTY = 3,
   ids = [
@@ -22,8 +22,6 @@ var
     "create identities": function(test, chain) {
       // set-up ids
       ids.forEach(function(persona, idx) {
-        //console.log("idx", idx);
-        //console.log("persona", persona);
         test.startTime();
         var 
           name = persona.name,
@@ -31,16 +29,14 @@ var
             "data": persona.data
           },
           identity = chain.identity.create(data);
-        //console.log(idx, name, data, identity);
+
         test.endTime();
         
         persona.identity = identity;
 
         persona.balance = 10.0;
       });
-      
-      //console.log(ids);
-      
+
       test.done();
     },
     "create genesis block": function(test, chain) {
@@ -57,35 +53,9 @@ var
         );
       
       test.endTime();
-      //console.log(block);
+      console.log(block);
       test.done();
     },
-    /*
-    "create transaction": function(test, chain) {
-      // create transaction on the blockchain
-      test.startTime();
-      var 
-        max_digits = 15,
-        random_number = Math.floor(Math.random() * max_digits) - max_digits,
-        random_nonce = parseInt(
-          ((Math.random() + "").replace(".", "").slice(random_number))
-        ),
-        
-        ID_ZERO = ids[0].identity,
-        ID_ONE = ids[1].identity,
-        
-        transactions = [
-          chain.transaction.create(ID_ONE, ID_ZERO, 3.33)
-        ],
-        transactionBlock = chain.block.create(
-          {"transactions": transactions}, MINING_DIFFICULTY, random_nonce
-        );
-      
-      test.endTime();
-      //console.log(transactionBlock);
-      test.done();
-    },
-    */
     "create transactions": function(test, chain) {
       // create transactions on the blockchain
       test.startTime();
@@ -122,8 +92,6 @@ var
           return user;
         });
       
-      console.log("blockHashes", blockHashes);
-      
       users.forEach(function(user, idx) {
         console.log(idx, user.name, user.balance)
       });
@@ -145,25 +113,3 @@ var
   };
 
 module.exports = tests;
-
-
-
-
-        /*
-        test.startTime();
-        var 
-          identity = chain.identity.create(
-            data[key]
-          );
-        console.log(idx, key, identity);
-        test.endTime();
-        
-        test.assert.identical(
-          JSON.stringify(data[key]), 
-          JSON.stringify(block.data)
-        );
-        test.assert.identical(
-          idx, 
-          block.index
-        );
-        */

@@ -1,3 +1,4 @@
+// TEST block.js
 var 
   data = {
     "genesis": {
@@ -8,10 +9,7 @@ var
     },
     "second": {
       "data": "The second block..."
-    },
-    "third": {
-      "data": "The third block..."
-    },
+    }
   },
   difficulty = 1, // NOTE: don't set this too high...lol... or you'll really be mining :)
   tests = {

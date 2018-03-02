@@ -1,4 +1,4 @@
-// tests for identity
+// TEST identity.js
 var 
   data = {
     "jeff allen": {
@@ -13,18 +13,8 @@ var
           identity = chain.identity.create(
             data[key]
           );
-        console.log(idx, key, identity);
+        
         test.endTime();
-        /*
-        test.assert.identical(
-          JSON.stringify(data[key]), 
-          JSON.stringify(block.data)
-        );
-        test.assert.identical(
-          idx, 
-          block.index
-        );
-        */
       });
       test.done();
     }

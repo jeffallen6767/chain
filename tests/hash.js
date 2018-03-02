@@ -1,3 +1,4 @@
+// TEST hash.js
 var 
   data = {
     "sha256": [

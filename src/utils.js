@@ -25,7 +25,7 @@ var
     });
   },
   verifyTransaction = function(transaction) {
-    console.log("verifyTransaction", transaction);
+    //console.log("verifyTransaction", transaction);
     var
       // verifiy that the transaction came FROM the sender
       payload = transaction.payload,

@@ -4,14 +4,16 @@ var
   
   ids = [
     {
-      "name": "jeff allen",
-      "data": "The secret of my identity should be a bunch of words?",
-      "balance": 10.0
+      "data": {
+        "name": "jeff allen",
+        "secret": "The secret of my identity should be a bunch of words?"
+      }
     },
     {
-      "name": "joe schmoe",
-      "data": "Some other secret that only joe knows...",
-      "balance": 10.0
+      "data": {
+        "name": "joe schmoe",
+        "data": "Some other secret that only joe knows..."
+      }
     }
   ],
 
@@ -34,17 +36,14 @@ var
       ids.forEach(function(persona, idx) {
         test.startTime();
         var 
-          name = persona.name,
-          data = {
-            "data": persona.data
-          },
-          identity = chain.identity.create(data);
+          name = persona.data.name,
+          identity = chain.identity.create(persona.data);
 
         test.endTime();
         
         persona.identity = identity;
         
-        console.log("persona", persona);
+        //console.log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(
@@ -70,7 +69,7 @@ var
         );
       
       test.endTime();
-      console.log(block);
+      //console.log(block);
       
       // test that previousHash is null
       test.assert.identical(
@@ -90,20 +89,19 @@ var
         random_nonce = parseInt(
           ((Math.random() + "").replace(".", "").slice(random_number))
         ),
-        
-        ID_ZERO = ids[0].identity,
-        ID_ONE = ids[1].identity,
-        
-        transactions = [
-          chain.transaction.create(ID_ONE, ID_ZERO, 3.33),
-          chain.transaction.create(ID_ZERO, ID_ONE, 1.33)
-        ],
+        transactions = txns.map(function(transaction, idx) {
+          return chain.transaction.create(
+            ids[transaction[0]].identity, 
+            ids[transaction[1]].identity,
+            transaction[2]
+          );
+        }),
         transactionBlock = chain.block.create(
           {"transactions": transactions}, MINING_DIFFICULTY, random_nonce
         );
-      
+
       test.endTime();
-      console.log(transactionBlock);
+      //console.log(transactionBlock);
       
       // 1 - test that # of transactions is correct
       test.assert.identical(
@@ -114,6 +112,7 @@ var
       
       // 2 & 3 - test that each transaction made it onto the blockchain
       transactions.forEach(function(transaction, idx) {
+        //console.log("transaction", idx, transaction);
         test.assert.identical(
           transactionBlock.data.transactions[idx],
           transaction,
@@ -152,25 +151,25 @@ var
           user.balance = chain.block.getUserBalance(user.identity);
           return user;
         });
-      
+      /*
       users.forEach(function(user, idx) {
         console.log(idx, user.name, user.balance)
       });
-      
+      */
       test.endTime();
       
       // test that users[0] balance is correct
       test.assert.identical(
         users[0].balance,
         2,
-        "test that balance for " + users[0].name + " is correct"
+        "test that balance for " + users[0].identity.name + " is correct"
       );
       
       // test that users[0] balance is correct
       test.assert.identical(
         users[1].balance,
         -2,
-        "test that balance for " + users[1].name + " is correct"
+        "test that balance for " + users[1].identity.name + " is correct"
       );
       
       test.done();

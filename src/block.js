@@ -54,10 +54,11 @@ var
         // calculate the # of calls to mineBlock per second
         perSecond = Math.round(scratchPad.miningAttempts / elapsed);
         // report the current statistics
-        console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
+        //console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
       }
     } else {
       // we're done mining...
+      /*
       console.log(
         "BLOCKHASH FOUND!!! mining difficulty", 
         difficulty, 
@@ -74,6 +75,7 @@ var
         "elapsed time:",
         elapsed
       );
+      */
     }
     
     return done;
@@ -158,7 +160,7 @@ var
     return blockChain.reduce(function(total, block) {
       var
         userPublicKey = userIdentity.publicKey,
-        transactions = (block.data && Array.isArray(block.data.transactions) && block.data.transactions) || [];
+        transactions = block.data.transactions;
       transactions.forEach(function(transaction) {
         if (transaction.payload.sender === userPublicKey) {
           total -= transaction.payload.amount;
@@ -167,6 +169,7 @@ var
           total += transaction.payload.amount;
         }
       });
+      //console.log("getUserBalance", userIdentity.name, total, block);
       return total;
     }, 0);
   },

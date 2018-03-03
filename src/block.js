@@ -101,6 +101,14 @@ var
         return acc;
       }, []);
     },
+    "getBlockByIndex": function(index) {
+      var
+        result = null;
+      if (index < blockChain.length) {
+        result = blockChain[index];
+      }
+      return result;
+    },
     "getUserBalance": function(userIdentity) {
       return blockChain.reduce(function(total, block) {
         var

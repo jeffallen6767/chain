@@ -27,6 +27,7 @@ var
   verifyTransaction = function(transaction) {
     console.log("verifyTransaction", transaction);
     var
+      // verifiy that the transaction came FROM the sender
       payload = transaction.payload,
       publicKey = Uint8Array.from(
         intBytes(
@@ -41,8 +42,11 @@ var
       messageBuffer = nacl.sign.open(signedMessage, publicKey),
       message = Buffer.from(messageBuffer).toString('hex'),
       result = message ? (JSON.stringify(payload) === objFromMessage(message).join('')) : false;
-
+    
     return result;
+  },
+  validTransaction = function(transaction) {
+    return transaction.payload.amount > 0;
   },
   getTransactionData = function(transactions) {
     var
@@ -51,7 +55,7 @@ var
         "bad": []
       };
     transactions.forEach(function(transaction, idx) {
-      if (verifyTransaction(transaction)) {
+      if (verifyTransaction(transaction) && validTransaction(transaction)) {
         result.good.push(
           transaction
         );

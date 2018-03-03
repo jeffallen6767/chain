@@ -1,37 +1,59 @@
 // block.js
 var
   utils = require("./utils"),
+  // will contain all blocks mined
   blockChain = [],
+  // return the next available index for a block
   getNextIndex = function() {
     return blockChain.length;
   },
+  // return the hash from the block previous to idx
   getPreviousHash = function(idx) {
     return idx ? blockChain[idx-1].hash : null;
   },
-  mineBlock = function(newBlock, meta) {
+  // mine a block
+  mineBlock = function(newBlock, scratchPad) {
     var
-      difficulty = meta.difficulty,
+      // number of zeros the hash must start with
+      difficulty = scratchPad.difficulty,
+      // slice off (difficulty) characters from start of hash
       test = newBlock.hash.slice(0, difficulty),
+      // parse the slice as a base-16 (hexidecimal) value
       value = parseInt(test, 16),
+      // compare result with zero ( zero == done )
       done = value === 0,
+      // get the current time
       time = utils.getTimeStamp(),
-      elapsed = (time - meta.timestamp) / 1000,
-      perSecond = Math.round(meta.lastVal / elapsed);
+      // calculate the elapsed time from current - start ( milliseconds )
+      elapsed = (time - scratchPad.timestamp) / 1000,
+      // calculate the # of calls to mineBlock per second
+      perSecond = Math.round(scratchPad.miningAttempts / elapsed);
     
     // check to see if we still need to mine...
     if (!done) {
-      meta.lastVal++;
+      // increment the number of mining attempts
+      scratchPad.miningAttempts++;
+      // have we reached the integer limit for JavaScript?
       if (newBlock.nonce === Number.MAX_SAFE_INTEGER) {
+        // start over at zero
         newBlock.nonce = 0;
       } else {
+        // increment ( add one ) to the current nonce
         newBlock.nonce++;
       }
+      // calculate the new hash ( only nonce has changed )
       newBlock.hash = utils.getObjectHash(newBlock);
+      // get the current time
       time = utils.getTimeStamp();
-      if (time - meta.lastMsg > 1000) {
-        meta.lastMsg = time;
-        elapsed = (time - meta.timestamp) / 1000;
-        perSecond = Math.round(meta.lastVal / elapsed);
+      // has it been at least one second since we last reported?
+      if (time - scratchPad.lastReportTime > 1000) {
+        // set the last report time to the current time
+        scratchPad.lastReportTime = time;
+        // calculate the elapsed time from current - start ( milliseconds )
+        elapsed = (time - scratchPad.timestamp) / 1000;
+        // calculate the # of calls to mineBlock per second
+        perSecond = Math.round(scratchPad.miningAttempts / elapsed);
+        // report the current statistics
         console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
       }
     } else {
@@ -43,91 +65,117 @@ var
         elapsed, 
         "seconds @", 
         perSecond, 
-        "/per second", 
+        "/per second, hash:", 
         newBlock.hash, 
+        "nonce:",
         newBlock.nonce, 
-        meta.lastVal, 
+        "miningAttempts:",
+        scratchPad.miningAttempts, 
+        "elapsed time:",
         elapsed
       );
     }
     
     return done;
   },
-  block = {
-    "create": function(data, difficulty, nonce) {
-      var
-        difficulty = difficulty || 0,
-        nonce = nonce || 0,
-        mining = difficulty ? true : false,
-        index = getNextIndex(),
-        previousHash = getPreviousHash(index),
-        timestamp = utils.getTimeStamp(),
-        transactionData = utils.getTransactionData(data.transactions || []),
-        goodTransactionData = transactionData.good,
-        badTransactionData = transactionData.bad,
-        newBlock = {
-          "data": data,
-          "index": index,
-          "previousHash": previousHash,
-          "timestamp": timestamp,
-          "difficulty": difficulty,
-          "nonce": nonce
-        },
-        meta = {
-          difficulty: difficulty,
-          timestamp: timestamp,
-          lastMsg: timestamp,
-          lastVal: 0
-        };
-      
-      // set good transaction data
-      data.transactions = goodTransactionData;
-      newBlock.data = data;
-      
-      // set hash
-      newBlock.hash = utils.getObjectHash(newBlock);
-      
+  // create a block
+  create = function(data, difficulty, nonce) {
+    var
+      // set up the mining difficulty ( number of zeros the hash must start with, zero == none )
+      difficulty = difficulty || 0,
+      // set up the nonce, a number incremented at each mining attempt ( this alters the resulting hash )
+      nonce = nonce || 0,
+      // if there's no difficulty, we don't even have to check for a good hash, we can just use whatever
+      mining = difficulty ? true : false,
+      // get the next available block index
+      index = getNextIndex(),
+      // get the hash from the previous block ( this new blocks parent )
+      previousHash = getPreviousHash(index),
+      // get the current time
+      timestamp = utils.getTimeStamp(),
+      // calculate the transaction data
+      transactionData = utils.getTransactionData(data.transactions || []),
+      // good transactions ( valid )
+      goodTransactionData = transactionData.good,
+      // bad transactions ( invalid )
+      badTransactionData = transactionData.bad,
+      // create the new block object
+      newBlock = {
+        "data": data,
+        "index": index,
+        "previousHash": previousHash,
+        "timestamp": timestamp,
+        "difficulty": difficulty,
+        "nonce": nonce
+      },
+      // set up the mining scratch-pad
+      scratchPad = {
+        difficulty: difficulty,
+        timestamp: timestamp,
+        lastReportTime: timestamp,
+        miningAttempts: 0
+      };
+    
+    // set good transaction data
+    data.transactions = goodTransactionData;
+    
+    // set data
+    newBlock.data = data;
+    
+    // set hash
+    newBlock.hash = utils.getObjectHash(newBlock);
+    
+    // do we still need to mine this block?
+    while (mining) {
       // try to mine the block
-      while (mining) {
-        if (mineBlock(newBlock, meta)) break;
-      }
-      
-      // add the newly mined block to the blockchain
-      blockChain.push(newBlock);
-      
-      return newBlock;
-    },
-    "getBlockHashes": function() {
-      return blockChain.reduce(function(acc, block) {
-        acc.push(
-          block.hash
-        );
-        return acc;
-      }, []);
-    },
-    "getBlockByIndex": function(index) {
-      return (
-        (index < blockChain.length)
-          ? result = blockChain[index]
-          : null
-      );
-    },
-    "getUserBalance": function(userIdentity) {
-      return blockChain.reduce(function(total, block) {
-        var
-          userPublicKey = userIdentity.publicKey,
-          transactions = (block.data && Array.isArray(block.data.transactions) && block.data.transactions) || [];
-        transactions.forEach(function(transaction) {
-          if (transaction.payload.sender === userPublicKey) {
-            total -= transaction.payload.amount;
-          }
-          if (transaction.payload.receiver === userPublicKey) {
-            total += transaction.payload.amount;
-          }
-        });
-        return total;
-      }, 0);
+      if (mineBlock(newBlock, scratchPad)) break;
     }
+    
+    // add the newly mined block to the blockchain
+    blockChain.push(newBlock);
+    
+    return newBlock;
+  },
+  // get all block hashes on blockchain
+  getBlockHashes = function() {
+    return blockChain.reduce(function(acc, block) {
+      acc.push(
+        block.hash
+      );
+      return acc;
+    }, []);
+  },
+  // get the block from the blockchain @ index
+  getBlockByIndex = function(index) {
+    return (
+      (index < blockChain.length)
+        ? result = blockChain[index]
+        : null
+    );
+  },
+  // calculate and return the balance of the user with passed identity.publicKey
+  getUserBalance = function(userIdentity) {
+    return blockChain.reduce(function(total, block) {
+      var
+        userPublicKey = userIdentity.publicKey,
+        transactions = (block.data && Array.isArray(block.data.transactions) && block.data.transactions) || [];
+      transactions.forEach(function(transaction) {
+        if (transaction.payload.sender === userPublicKey) {
+          total -= transaction.payload.amount;
+        }
+        if (transaction.payload.receiver === userPublicKey) {
+          total += transaction.payload.amount;
+        }
+      });
+      return total;
+    }, 0);
+  },
+  // the block API
+  blockAPI = {
+    "create": create,
+    "getBlockHashes": getBlockHashes,
+    "getBlockByIndex": getBlockByIndex,
+    "getUserBalance": getUserBalance
   };
 
-module.exports = block;
+module.exports = blockAPI;

@@ -1,14 +1,17 @@
 // INTEGRATION TESTS
 var 
   MINING_DIFFICULTY = 1,
+  
   ids = [
     {
       "name": "jeff allen",
-      "data": "The secret of my identity should be a bunch of words?"
+      "data": "The secret of my identity should be a bunch of words?",
+      "balance": 10.0
     },
     {
       "name": "joe schmoe",
-      "data": "Some other secret that only joe knows..."
+      "data": "Some other secret that only joe knows...",
+      "balance": 10.0
     }
   ],
 
@@ -17,6 +20,13 @@ var
       "data": "The genesis block..."
     },
   },
+  
+  txns = [
+    // user[0] sends 2 to user[1]
+    [0, 1, 2],
+    // user[1] sends 4 to user[0]
+    [1, 0, 4]
+  ],
   
   tests = {
     "create identities": function(test, chain) {
@@ -33,8 +43,6 @@ var
         test.endTime();
         
         persona.identity = identity;
-
-        persona.balance = 10.0;
         
         console.log("persona", persona);
         
@@ -137,7 +145,7 @@ var
     "get balances": function(test, chain) {
       // get identity balance from the blockchain
       test.startTime();
-      console.log(chain.block);
+      //console.log(chain.block);
       var 
         blockHashes = chain.block.getBlockHashes(),
         users = ids.map(function(user) {

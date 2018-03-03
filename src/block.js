@@ -14,8 +14,11 @@ var
       test = newBlock.hash.slice(0, difficulty),
       value = parseInt(test, 16),
       done = value === 0,
-      next,
-      time, elapsed, perSecond;
+      time = utils.getTimeStamp(),
+      elapsed = (time - meta.timestamp) / 1000,
+      perSecond = Math.round(meta.lastVal / elapsed);
+    
+    // check to see if we still need to mine...
     if (!done) {
       meta.lastVal++;
       if (newBlock.nonce === Number.MAX_SAFE_INTEGER) {
@@ -32,6 +35,7 @@ var
         console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
       }
     } else {
+      // we're done mining...
       console.log(
         "BLOCKHASH FOUND!!! mining difficulty", 
         difficulty, 
@@ -46,6 +50,7 @@ var
         elapsed
       );
     }
+    
     return done;
   },
   block = {
@@ -84,8 +89,7 @@ var
       
       // try to mine the block
       while (mining) {
-        done = mineBlock(newBlock, meta);
-        if (done) break;
+        if (mineBlock(newBlock, meta)) break;
       }
       
       // add the newly mined block to the blockchain

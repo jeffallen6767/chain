@@ -22,10 +22,10 @@ var
           random_nonce = parseInt(
             ((Math.random() + "").replace(".", "").slice(random_number))
           ),
-          block = chain.block.create(
+          blockData = chain.block.create(
             data[key], difficulty++, random_nonce
-          );
-        console.log(idx, key, block);
+          ),
+          block = blockData.newBlock;
         test.endTime();
         test.assert.identical(
           JSON.stringify(data[key]), 
@@ -35,6 +35,7 @@ var
           idx, 
           block.index
         );
+        console.log(idx, key, blockData);
       });
       test.done();
     }

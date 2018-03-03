@@ -12,10 +12,12 @@ var
     return idx ? blockChain[idx-1].hash : null;
   },
   // mine a block
-  mineBlock = function(newBlock, scratchPad) {
+  mineBlock = function(miningData) {
     var
       // number of zeros the hash must start with
-      difficulty = scratchPad.difficulty,
+      difficulty = miningData.difficulty,
+      // the block we're trying to mine
+      newBlock = miningData.newBlock,
       // slice off (difficulty) characters from start of hash
       test = newBlock.hash.slice(0, difficulty),
       // parse the slice as a base-16 (hexidecimal) value
@@ -25,14 +27,14 @@ var
       // get the current time
       time = utils.getTimeStamp(),
       // calculate the elapsed time from current - start ( milliseconds )
-      elapsed = (time - scratchPad.timestamp) / 1000,
+      elapsed = (time - miningData.timestamp) / 1000,
       // calculate the # of calls to mineBlock per second
-      perSecond = Math.round(scratchPad.miningAttempts / elapsed);
+      perSecond = Math.round(miningData.miningAttempts / elapsed);
     
     // check to see if we still need to mine...
     if (!done) {
       // increment the number of mining attempts
-      scratchPad.miningAttempts++;
+      miningData.miningAttempts++;
       // have we reached the integer limit for JavaScript?
       if (newBlock.nonce === Number.MAX_SAFE_INTEGER) {
         // start over at zero
@@ -46,13 +48,13 @@ var
       // get the current time
       time = utils.getTimeStamp();
       // has it been at least one second since we last reported?
-      if (time - scratchPad.lastReportTime > 1000) {
+      if (time - miningData.lastReportTime > 1000) {
         // set the last report time to the current time
-        scratchPad.lastReportTime = time;
+        miningData.lastReportTime = time;
         // calculate the elapsed time from current - start ( milliseconds )
-        elapsed = (time - scratchPad.timestamp) / 1000;
+        elapsed = (time - miningData.timestamp) / 1000;
         // calculate the # of calls to mineBlock per second
-        perSecond = Math.round(scratchPad.miningAttempts / elapsed);
+        perSecond = Math.round(miningData.miningAttempts / elapsed);
         // report the current statistics
         //console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
       }
@@ -71,7 +73,7 @@ var
         "nonce:",
         newBlock.nonce, 
         "miningAttempts:",
-        scratchPad.miningAttempts, 
+        miningData.miningAttempts, 
         "elapsed time:",
         elapsed
       );
@@ -110,12 +112,13 @@ var
         "difficulty": difficulty,
         "nonce": nonce
       },
-      // set up the mining scratch-pad
-      scratchPad = {
+      // set up the mining scratch-pad for the miner
+      miningData = {
         difficulty: difficulty,
         timestamp: timestamp,
         lastReportTime: timestamp,
-        miningAttempts: 0
+        miningAttempts: 0,
+        newBlock: newBlock
       };
     
     // set good transaction data
@@ -130,13 +133,13 @@ var
     // do we still need to mine this block?
     while (mining) {
       // try to mine the block
-      if (mineBlock(newBlock, scratchPad)) break;
+      if (mineBlock(miningData)) break;
     }
     
     // add the newly mined block to the blockchain
     blockChain.push(newBlock);
     
-    return newBlock;
+    return miningData;
   },
   // get all block hashes on blockchain
   getBlockHashes = function() {
@@ -173,12 +176,17 @@ var
       return total;
     }, 0);
   },
+  resetBlockChain = function() {
+    blockChain = [];
+    return blockChain;
+  },
   // the block API
   blockAPI = {
     "create": create,
     "getBlockHashes": getBlockHashes,
     "getBlockByIndex": getBlockByIndex,
-    "getUserBalance": getUserBalance
+    "getUserBalance": getUserBalance,
+    "resetBlockChain": resetBlockChain
   };
 
 module.exports = blockAPI;

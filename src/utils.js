@@ -19,29 +19,32 @@ var
       return parseInt(strByte, 16);
     });
   },
-  objFromMessage = function(message) {
-    return intBytes(message).map(function(num) {
+  uInt8ArrayFromString = function(string) {
+    return Uint8Array.from(
+      intBytes(
+        string
+      )
+    );
+  },
+  stringFromUint8Array = function(uInt8Array) {
+    return Array.from(uInt8Array).map(function(num) {
       return String.fromCharCode(num);
-    });
+    }).join('');
   },
   verifyTransaction = function(transaction) {
     //console.log("verifyTransaction", transaction);
     var
       // verifiy that the transaction came FROM the sender
       payload = transaction.payload,
-      publicKey = Uint8Array.from(
-        intBytes(
+      messageArray = nacl.sign.open(
+        uInt8ArrayFromString(
+          transaction.signedMessage
+        ), 
+        uInt8ArrayFromString(
           payload.sender
         )
       ),
-      signedMessage = Uint8Array.from(
-        intBytes(
-          transaction.signedMessage
-        )
-      ),
-      messageBuffer = nacl.sign.open(signedMessage, publicKey),
-      message = Buffer.from(messageBuffer).toString('hex'),
-      result = message ? (JSON.stringify(payload) === objFromMessage(message).join('')) : false;
+      result = messageArray && (JSON.stringify(payload) === stringFromUint8Array(messageArray));
     
     return result;
   },
@@ -102,18 +105,17 @@ var
       objToUint8Array(obj), 
       keyBuffer
     )).toString('hex');
+  },
+  utilsAPI = {
+    "getTimeStamp": getTimeStamp,
+    "getObjectHash": getObjectHash,
+    "bytes": bytes,
+    "intBytes": intBytes,
+    "verifyTransaction": verifyTransaction,
+    "getTransactionData": getTransactionData,
+    "getKeyPair": getKeyPair,
+    "objToUint8Array": objToUint8Array,
+    "getSignedMessage": getSignedMessage
   };
   
-
-module.exports = {
-  "getTimeStamp": getTimeStamp,
-  "getObjectHash": getObjectHash,
-  "bytes": bytes,
-  "intBytes": intBytes,
-  "objFromMessage": objFromMessage,
-  "verifyTransaction": verifyTransaction,
-  "getTransactionData": getTransactionData,
-  "getKeyPair": getKeyPair,
-  "objToUint8Array": objToUint8Array,
-  "getSignedMessage": getSignedMessage
-};
+module.exports = utilsAPI;

@@ -31,6 +31,22 @@ var
   ],
   
   tests = {
+    "reset blockchain": function(test, chain) {
+      test.startTime();
+      var 
+        emptyBlockchain = chain.block.resetBlockChain();
+      
+      test.endTime();
+      
+      // test resetBlockChain will empty the blockchain
+      test.assert.identical(
+        emptyBlockchain.length,
+        [].length,
+        "test resetBlockChain will empty the blockchain"
+      );
+      
+      test.done();
+    },
     "create identities": function(test, chain) {
       // set-up ids
       ids.forEach(function(persona, idx) {
@@ -64,9 +80,10 @@ var
         random_nonce = parseInt(
           ((Math.random() + "").replace(".", "").slice(random_number))
         ),
-        block = chain.block.create(
+        blockData = chain.block.create(
           data["genesis"], 1, random_nonce
-        );
+        ),
+        block = blockData.newBlock;
       
       test.endTime();
       //console.log(block);
@@ -96,16 +113,17 @@ var
             transaction[2]
           );
         }),
-        transactionBlock = chain.block.create(
+        blockData = chain.block.create(
           {"transactions": transactions}, MINING_DIFFICULTY, random_nonce
-        );
+        ),
+        newBlock = blockData.newBlock;
 
       test.endTime();
-      //console.log(transactionBlock);
+      //console.log(newBlock);
       
       // 1 - test that # of transactions is correct
       test.assert.identical(
-        transactionBlock.data.transactions.length,
+        newBlock.data.transactions.length,
         transactions.length,
         "test that # of transactions is correct"
       );
@@ -114,7 +132,7 @@ var
       transactions.forEach(function(transaction, idx) {
         //console.log("transaction", idx, transaction);
         test.assert.identical(
-          transactionBlock.data.transactions[idx],
+          newBlock.data.transactions[idx],
           transaction,
           "test that transaction[" + idx + "] made it onto the blockchain"
         );
@@ -123,7 +141,7 @@ var
       // 4 - test that block.hash starts with MINING_DIFFICULTY zeros
       test.assert.identical(
         parseInt(
-          transactionBlock.hash.slice(0, MINING_DIFFICULTY),
+          newBlock.hash.slice(0, MINING_DIFFICULTY),
           16
         ),
         0,
@@ -132,9 +150,9 @@ var
       
       // test that previous block hash is correct
       test.assert.identical(
-        transactionBlock.previousHash,
+        newBlock.previousHash,
         chain.block.getBlockByIndex(
-          transactionBlock.index - 1
+          newBlock.index - 1
         ).hash,
         "test that previous block hash is correct"
       );

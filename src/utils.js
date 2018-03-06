@@ -1,13 +1,15 @@
 // utils.js
 var
   nacl = require("tweetnacl"),
+  stringify = require('json-stable-stringify'),
   hasher = require("./hash").keccak.mode("SHA-3-256"),
+  words = require("./words"),
   getTimeStamp = function() {
     return new Date().getTime();
   },
   getObjectHash = function(obj) {
     return hasher.init().update(
-      JSON.stringify(obj)
+      stringify(obj)
     ).digest();
   },
   bytes = function(byteString) {
@@ -25,6 +27,9 @@ var
         string
       )
     );
+  },
+  hexFromUInt8Array = function(uInt8Array) {
+    return Buffer.from(uInt8Array).toString('hex');
   },
   stringFromUint8Array = function(uInt8Array) {
     return Array.from(uInt8Array).map(function(num) {
@@ -44,7 +49,7 @@ var
           payload.sender
         )
       ),
-      result = messageArray && (JSON.stringify(payload) === stringFromUint8Array(messageArray));
+      result = messageArray && (stringify(payload) === stringFromUint8Array(messageArray));
     
     return result;
   },
@@ -70,6 +75,9 @@ var
     });
     return result;
   },
+  createRandomBytes = function(num) {
+    return nacl.randomBytes(num);
+  },
   getPrivateSeedBuffer = function(obj) {
     return Uint8Array.from(
       intBytes(
@@ -94,7 +102,7 @@ var
   objToUint8Array = function(obj) {
     return Uint8Array.from(
       charCodes(
-        JSON.stringify(
+        stringify(
           obj
         )
       )
@@ -107,6 +115,10 @@ var
     )).toString('hex');
   },
   utilsAPI = {
+    /* pass-throughs */
+    "hexToWords": words.hexToWords,
+    "wordsToHex": words.wordsToHex,
+    /* internal */
     "getTimeStamp": getTimeStamp,
     "getObjectHash": getObjectHash,
     "bytes": bytes,
@@ -115,7 +127,10 @@ var
     "getTransactionData": getTransactionData,
     "getKeyPair": getKeyPair,
     "objToUint8Array": objToUint8Array,
-    "getSignedMessage": getSignedMessage
+    "getSignedMessage": getSignedMessage,
+    "createRandomBytes": createRandomBytes,
+    "hexFromUInt8Array": hexFromUInt8Array,
+    
   };
   
 module.exports = utilsAPI;

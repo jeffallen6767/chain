@@ -4,15 +4,15 @@ var
   
   ids = [
     {
+      "name": "jeff allen",
       "data": {
-        "name": "jeff allen",
-        "secret": "The secret of my identity should be a bunch of words?"
+        "pass": "My cat pukes all the time..."
       }
     },
     {
+      "name": "joe schmoe",
       "data": {
-        "name": "joe schmoe",
-        "data": "Some other secret that only joe knows..."
+        "pass": "Some other secret that only joe knows..."
       }
     }
   ],
@@ -51,20 +51,15 @@ var
       // set-up ids
       ids.forEach(function(persona, idx) {
         test.startTime();
-        var 
-          name = persona.data.name,
-          identity = chain.identity.create(persona.data);
-
+        persona.data = chain.identity.create(persona.data);
         test.endTime();
         
-        persona.identity = identity;
-        
-        //console.log("persona", persona);
+        console.log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(
-          persona.identity.publicKey,
-          persona.identity.privateKey.slice(64),
+          persona.data.publicKey,
+          persona.data.privateKey.slice(64),
           "test that privateKey contains publicKey"
         );
         
@@ -108,8 +103,8 @@ var
         ),
         transactions = txns.map(function(transaction, idx) {
           return chain.transaction.create(
-            ids[transaction[0]].identity, 
-            ids[transaction[1]].identity,
+            ids[transaction[0]].data, 
+            ids[transaction[1]].data,
             transaction[2]
           );
         }),
@@ -166,7 +161,7 @@ var
       var 
         blockHashes = chain.block.getBlockHashes(),
         users = ids.map(function(user) {
-          user.balance = chain.block.getUserBalance(user.identity);
+          user.balance = chain.block.getUserBalance(user.data);
           return user;
         });
       /*
@@ -180,14 +175,14 @@ var
       test.assert.identical(
         users[0].balance,
         2,
-        "test that balance for " + users[0].identity.name + " is correct"
+        "test that balance for " + users[0].name + " is correct"
       );
       
       // test that users[0] balance is correct
       test.assert.identical(
         users[1].balance,
         -2,
-        "test that balance for " + users[1].identity.name + " is correct"
+        "test that balance for " + users[1].name + " is correct"
       );
       
       test.done();

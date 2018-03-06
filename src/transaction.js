@@ -1,6 +1,10 @@
 // transaction.js
+// max safe int = 9,007,199,254,740,991
 var
   utils = require("./utils"),
+  coinbase = function() {
+    
+  },
   transaction = {
     // sender & receiver are both identities
     "create": function(sender, receiver, amount) {

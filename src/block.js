@@ -105,11 +105,11 @@ var
       badTransactionData = transactionData.bad,
       // create the new block object
       newBlock = {
-        "data": data,
         "index": index,
-        "previousHash": previousHash,
         "timestamp": timestamp,
         "difficulty": difficulty,
+        "previousHash": previousHash,
+        "data": data,
         "nonce": nonce
       },
       // set up the mining scratch-pad for the miner

@@ -2,15 +2,19 @@
 var
   nacl = require("tweetnacl"),
   stringify = require('json-stable-stringify'),
-  hasher = require("./hash").keccak.mode("SHA-3-256"),
+  hasher = require("./hash"),
   words = require("./words"),
   getTimeStamp = function() {
     return new Date().getTime();
   },
+  getHash = function(str, mode, len) {
+    return hasher.keccak.mode(mode).init().update(str).digest(len);
+  },
   getObjectHash = function(obj) {
-    return hasher.init().update(
-      stringify(obj)
-    ).digest();
+    return getHash(
+      stringify(obj),
+      "SHA-3-256"
+    );
   },
   bytes = function(byteString) {
     // return 2 char chunks
@@ -116,10 +120,12 @@ var
   },
   utilsAPI = {
     /* pass-throughs */
+    "stringify": stringify,
     "hexToWords": words.hexToWords,
     "wordsToHex": words.wordsToHex,
     /* internal */
     "getTimeStamp": getTimeStamp,
+    "getHash": getHash,
     "getObjectHash": getObjectHash,
     "bytes": bytes,
     "intBytes": intBytes,
@@ -130,6 +136,7 @@ var
     "getSignedMessage": getSignedMessage,
     "createRandomBytes": createRandomBytes,
     "hexFromUInt8Array": hexFromUInt8Array,
+    "uInt8ArrayFromString": uInt8ArrayFromString,
     
   };
   

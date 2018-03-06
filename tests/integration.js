@@ -51,7 +51,56 @@ var
       // set-up ids
       ids.forEach(function(persona, idx) {
         test.startTime();
-        persona.data = chain.identity.create(persona.data);
+        var
+          wallet = chain.wallet.load(persona);
+        /*
+        console.log("wallet", wallet);
+        console.log("wallet.pass", wallet.pass);
+        //var password_hash = chain.utils.getHash(wallet.pass, "SHA-3-256").slice(-32);
+        var password_hash = chain.utils.getHash(
+          chain.utils.getHash(
+            wallet.pass, 
+            "SHA-3-256"
+          ), 
+          "SHAKE-128",
+          16
+        );
+        
+        console.log("password_hash", password_hash);
+
+        var shake = chain.utils.getHash(password_hash, "SHAKE-256", 16);
+        console.log("shake", shake);
+        
+        var iv = chain.utils.uInt8ArrayFromString(shake);
+
+        console.log("iv", iv);
+        
+        var crypto = require('crypto');
+        var algorithm = 'AES-256-CBC';
+        
+        var cipher = crypto.createCipheriv(algorithm, password_hash, iv);
+        
+        var encryptedData = cipher.update(
+          chain.utils.stringify(wallet), 
+          'utf8', 
+          'hex'
+        ) + cipher.final('hex');
+        console.log("encryptedData", encryptedData);
+        
+        process.exit(1);
+        */
+        
+        if (!wallet) {
+          persona.data = chain.identity.create(persona.data);
+          console.log("BEFORE SAVE", persona);
+          wallet = chain.wallet.save(persona);
+        } else {
+          
+        }
+        
+        persona.data = wallet;
+        
+        //persona.data = chain.identity.create(persona.data);
         test.endTime();
         
         console.log("persona", persona);

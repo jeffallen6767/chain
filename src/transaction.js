@@ -18,7 +18,7 @@ var
         // create a signed-message from the payload and secret key
         signedMessage = utils.getSignedMessage(
           payload, 
-          sender.bufferKeys.secretKey
+          sender.privateBuffer
         ),
         // create the transaction:
         transaction = {

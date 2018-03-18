@@ -4,16 +4,36 @@ var
   stringify = require('json-stable-stringify'),
   hasher = require("./hash"),
   words = require("./words"),
+  log = function() {
+    console.log(
+      [].slice.call(arguments).reduce(function(acc, item) {
+        if (typeof item === 'object') {
+          acc.push(stringify(item));
+        } else {
+          acc.push(item);
+        }
+        return acc;
+      }, []).join(' ')
+    );
+  },
   getTimeStamp = function() {
     return new Date().getTime();
   },
   getHash = function(str, mode, len) {
     return hasher.keccak.mode(mode).init().update(str).digest(len);
   },
+  shake128 = function(str, len) {
+    return getHash(str, "SHAKE-128", len);
+  },
+  shake256 = function(str, len) {
+    return getHash(str, "SHAKE-256", len);
+  },
+  sha256 = function(str) {
+    return getHash(str, "SHA-3-256");
+  },
   getObjectHash = function(obj) {
-    return getHash(
-      stringify(obj),
-      "SHA-3-256"
+    return sha256(
+      stringify(obj)
     );
   },
   bytes = function(byteString) {
@@ -98,6 +118,17 @@ var
       )
     );
   },
+  setKeyPair = function(persona) {
+    var 
+      keyPair = getKeyPair({
+        "pass": persona.pass,
+        "mnemonic": persona.keys.mnemonic
+      });
+    persona.keys.privateBuffer = persona.keys.privateBuffer || keyPair.secretKey;
+    persona.keys.publicBuffer = persona.keys.publicBuffer || keyPair.publicKey;
+    persona.keys.privateKey = persona.keys.privateKey || hexFromUInt8Array(persona.keys.privateBuffer);
+    persona.keys.publicKey = persona.keys.publicKey || hexFromUInt8Array(persona.keys.publicBuffer);
+  },
   charCodes = function(string) {
     return string.split('').map(function(character) {
       return character.charCodeAt(0);
@@ -118,25 +149,45 @@ var
       keyBuffer
     )).toString('hex');
   },
+  getRandomNonce = function() {
+    var max_digits = 15,
+      random_number = Math.floor(Math.random() * max_digits) - max_digits,
+      random_nonce = parseInt(
+        ((Math.random() + "").replace(".", "").slice(random_number))
+      );
+    return random_nonce;
+  },
   utilsAPI = {
     /* pass-throughs */
     "stringify": stringify,
     "hexToWords": words.hexToWords,
     "wordsToHex": words.wordsToHex,
     /* internal */
+    "log": log,
     "getTimeStamp": getTimeStamp,
+    /* hashing */
     "getHash": getHash,
+    "sha256": sha256,
+    "shake128": shake128,
+    "shake256": shake256,
     "getObjectHash": getObjectHash,
+    /* buffers and bytes */
     "bytes": bytes,
     "intBytes": intBytes,
-    "verifyTransaction": verifyTransaction,
-    "getTransactionData": getTransactionData,
-    "getKeyPair": getKeyPair,
-    "objToUint8Array": objToUint8Array,
-    "getSignedMessage": getSignedMessage,
     "createRandomBytes": createRandomBytes,
+    "objToUint8Array": objToUint8Array,
     "hexFromUInt8Array": hexFromUInt8Array,
     "uInt8ArrayFromString": uInt8ArrayFromString,
+    /* transactions */
+    "verifyTransaction": verifyTransaction,
+    "getTransactionData": getTransactionData,
+    /* nacl signatures */
+    "getKeyPair": getKeyPair,
+    "setKeyPair": setKeyPair,
+    "getSignedMessage": getSignedMessage,
+    /* mining */
+    "getRandomNonce": getRandomNonce,
+    
     
   };
   

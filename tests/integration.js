@@ -1,19 +1,17 @@
 // INTEGRATION TESTS
 var 
+  utils = require('../src/utils'),
+  log = utils.log,
   MINING_DIFFICULTY = 1,
   
   ids = [
     {
       "name": "jeff allen",
-      "data": {
-        "pass": "My cat pukes all the time..."
-      }
+      "pass": "This is my super secret passphrase...that only I know!"
     },
     {
       "name": "joe schmoe",
-      "data": {
-        "pass": "Some other secret that only joe knows..."
-      }
+      "pass": "Some other secret that only joe knows..."
     }
   ],
 
@@ -51,64 +49,19 @@ var
       // set-up ids
       ids.forEach(function(persona, idx) {
         test.startTime();
-        var
-          wallet = chain.wallet.load(persona);
-        /*
-        console.log("wallet", wallet);
-        console.log("wallet.pass", wallet.pass);
-        //var password_hash = chain.utils.getHash(wallet.pass, "SHA-3-256").slice(-32);
-        var password_hash = chain.utils.getHash(
-          chain.utils.getHash(
-            wallet.pass, 
-            "SHA-3-256"
-          ), 
-          "SHAKE-128",
-          16
-        );
         
-        console.log("password_hash", password_hash);
-
-        var shake = chain.utils.getHash(password_hash, "SHAKE-256", 16);
-        console.log("shake", shake);
+        chain.wallet.load(persona);
         
-        var iv = chain.utils.uInt8ArrayFromString(shake);
-
-        console.log("iv", iv);
+        chain.wallet.unlock(persona);
         
-        var crypto = require('crypto');
-        var algorithm = 'AES-256-CBC';
-        
-        var cipher = crypto.createCipheriv(algorithm, password_hash, iv);
-        
-        var encryptedData = cipher.update(
-          chain.utils.stringify(wallet), 
-          'utf8', 
-          'hex'
-        ) + cipher.final('hex');
-        console.log("encryptedData", encryptedData);
-        
-        process.exit(1);
-        */
-        
-        if (!wallet) {
-          persona.data = chain.identity.create(persona.data);
-          console.log("BEFORE SAVE", persona);
-          wallet = chain.wallet.save(persona);
-        } else {
-          
-        }
-        
-        persona.data = wallet;
-        
-        //persona.data = chain.identity.create(persona.data);
         test.endTime();
         
-        console.log("persona", persona);
+        //log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(
-          persona.data.publicKey,
-          persona.data.privateKey.slice(64),
+          persona.keys.publicKey,
+          persona.keys.privateKey.slice(64),
           "test that privateKey contains publicKey"
         );
         
@@ -119,13 +72,8 @@ var
       // create genesis block
       test.startTime();
       var 
-        max_digits = 15,
-        random_number = Math.floor(Math.random() * max_digits) - max_digits,
-        random_nonce = parseInt(
-          ((Math.random() + "").replace(".", "").slice(random_number))
-        ),
         blockData = chain.block.create(
-          data["genesis"], 1, random_nonce
+          data["genesis"], 1, utils.getRandomNonce()
         ),
         block = blockData.newBlock;
       
@@ -145,20 +93,15 @@ var
       // create transactions on the blockchain
       test.startTime();
       var 
-        max_digits = 15,
-        random_number = Math.floor(Math.random() * max_digits) - max_digits,
-        random_nonce = parseInt(
-          ((Math.random() + "").replace(".", "").slice(random_number))
-        ),
         transactions = txns.map(function(transaction, idx) {
           return chain.transaction.create(
-            ids[transaction[0]].data, 
-            ids[transaction[1]].data,
+            ids[transaction[0]].keys, 
+            ids[transaction[1]].keys,
             transaction[2]
           );
         }),
         blockData = chain.block.create(
-          {"transactions": transactions}, MINING_DIFFICULTY, random_nonce
+          {"transactions": transactions}, MINING_DIFFICULTY, utils.getRandomNonce()
         ),
         newBlock = blockData.newBlock;
 
@@ -176,8 +119,8 @@ var
       transactions.forEach(function(transaction, idx) {
         //console.log("transaction", idx, transaction);
         test.assert.identical(
-          newBlock.data.transactions[idx],
-          transaction,
+          utils.sha256(utils.stringify(newBlock.data.transactions[idx])),
+          utils.sha256(utils.stringify(transaction)),
           "test that transaction[" + idx + "] made it onto the blockchain"
         );
       });
@@ -210,14 +153,14 @@ var
       var 
         blockHashes = chain.block.getBlockHashes(),
         users = ids.map(function(user) {
-          user.balance = chain.block.getUserBalance(user.data);
+          user.balance = chain.block.getUserBalance(user.keys);
           return user;
         });
-      /*
-      users.forEach(function(user, idx) {
-        console.log(idx, user.name, user.balance)
-      });
-      */
+      
+      //users.forEach(function(user, idx) {
+      //  console.log(idx, user.name, user.balance)
+      //});
+      
       test.endTime();
       
       // test that users[0] balance is correct

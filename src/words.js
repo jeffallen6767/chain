@@ -242,6 +242,13 @@ var
       }, []).join(""), shuffled.length
     );
   },
+  limit = function(value) {
+    return (
+      value < 0 
+        ? NUM_WORDS + value 
+        : value % NUM_WORDS
+    );
+  },
   hexToWords = function(hexString) {
     var
       result = [],
@@ -259,19 +266,10 @@ var
       w = (Math.floor(Math.floor(z/NUM_WORDS)/NUM_WORDS) + v) % NUM_WORDS;
       
       result.push(u,v,w);
-      
-      console.log(x, y, z, "::", u, v, w);
     }
     return result.map(function(idx) {
       return WORD_LIST[idx];
     }).join(ONE_SPACE);
-  },
-  limit = function(value) {
-    return (
-      value < 0 
-        ? NUM_WORDS + value 
-        : value % NUM_WORDS
-    );
   },
   wordsToHex = function(strInput) {
     var
@@ -298,8 +296,6 @@ var
       v = ("00000000" + u).slice(-8);
       
       result.push(v);
-      
-      console.log(x, first, second, third, one, two, three, "::", y, u, v);
     }
     return result.join(EMPTY_SPACE);
   };

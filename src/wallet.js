@@ -1,126 +1,199 @@
 // wallet.js
 var
   path = require("path"),
-  jfs = require('jsonfile'),
+  fs = require("fs"),
   utils = require("./utils"),
-  cryp = require('crypto'),
+  crypto = require('crypto'),
+  KEY_FILE_NAME = "keys",
+  DATA_FILE_NAME = "data",
   algorithm = 'AES-256-CBC',
   basePath = process.cwd(),
   walletPath = path.resolve(basePath, 'data/wallet'),
   KEYS_IGNORE_SAVE = ["bufferKeys"],
-  prepareSaveData = function(data) {
+  loadFile = function(srcPath, fileName) {
     var
-      obj = {},
-      result;
-    
-    Object.keys(data).forEach(function(key) {
-      if (KEYS_IGNORE_SAVE.indexOf(key) === -1) {
-        obj[key] = data[key];
+      filePath = path.resolve(srcPath, fileName),
+      file = checkFile(filePath);
+    if (file) {
+      try {
+        file = fs.readFileSync(filePath, 'utf8');
+      } catch (e) {
+        console.error("loadFile", srcPath, fileName, e);
       }
-    });
-
-    var password_hash = utils.getHash(
-      utils.getHash(
-        obj.pass, 
-        "SHA-3-256"
-      ), 
-      "SHAKE-128",
-      16
+    }
+    return file;
+  },
+  saveFile = function(srcPath, fileName, data) {
+    if (!checkDir(srcPath)) {
+      fs.mkdirSync(srcPath);
+    }
+    try {
+      fs.writeFileSync(fileName, data);
+    } catch (e) {
+      console.error("saveFile", srcPath, fileName, e);
+    }
+  },
+  checkDir = function(dirPath) {
+    return (
+      fs.existsSync(dirPath) &&
+      fs.statSync(dirPath).isDirectory()
     );
-    console.log("password_hash", password_hash);
-
-    var shake = utils.getHash(password_hash, "SHAKE-256", 16);
-    console.log("shake", shake);
+  },
+  checkFile = function(filePath) {
+    return (
+      fs.existsSync(filePath) &&
+      fs.statSync(filePath).isFile()
+    );
+  },
+  getPersonaDir = function(persona) {
+    return path.resolve(
+      walletPath, 
+      persona.name.replace(/\s/g, '_')
+    );
+  },
+  /* get */
+  getKeyFilePath = function(personaDir) {
+    return path.resolve(
+      personaDir, 
+      KEY_FILE_NAME
+    );
+  },
+  getDataFilePath = function(personaDir) {
+    return path.resolve(
+      personaDir, 
+      DATA_FILE_NAME
+    );
+  },
+  /* load */
+  loadKeyFile = function(persona) {
+    persona.keys = checkDir(persona.dir) && loadFile(persona.dir, persona.keyFilePath);
+    persona.keys = persona.keys && JSON.parse(persona.keys);
+    return persona.keys;
+  },
+  loadDataFile = function(persona) {
+    persona.data = checkDir(persona.dir) && loadFile(persona.dir, persona.dataFilePath);
+    persona.data = persona.data && JSON.parse(persona.data);
+    return persona.data;
+  },
+  loadPersonaKeyFile = function(persona) {
+    persona.keyFilePath = getKeyFilePath(persona.dir);
+    return loadKeyFile(persona);
+  },
+  loadPersonaDataFile = function(persona) {
+    persona.dataFilePath = getDataFilePath(persona.dir);
+    return loadDataFile(persona);
+  },
+  /* create */
+  createPersonaKeyFile = function(persona) {
+    persona.keys = persona.keys || {};
+    persona.keys.mnemonic = persona.keys.mnemonic || utils.hexToWords(
+      utils.hexFromUInt8Array(
+        utils.createRandomBytes(16)
+      )
+    );
+    utils.setKeyPair(persona);
+    return persona;
+  },
+  createPersonaDataFile = function(persona) {
+    persona.data = {};
+    return persona;
+  },
+  /* save */
+  savePersonaKeyFile = function(persona) {
+    var
+      strData = lock(persona);
+    saveFile(persona.dir, persona.keyFilePath, strData);
+    return persona;
+  },
+  savePersonaDataFile = function(persona) {
+    var
+      strData = utils.stringify(persona.data);
+    saveFile(persona.dir, persona.dataFilePath, strData);
+    return persona;
+  },
+  /* api */
+  load = function(persona) {
+    persona.dir = getPersonaDir(persona);
+    loadPersonaKeyFile(persona) || (createPersonaKeyFile(persona) && savePersonaKeyFile(persona));
+    loadPersonaDataFile(persona) || (createPersonaDataFile(persona) && savePersonaDataFile(persona));
+    return persona;
+  },
+  save = function(persona) {
+    console.log("wallet.save", persona);
+    return savePersonaKeyFile(persona) && savePersonaDataFile(persona);
+  },
+  lock = function(persona) {
+    if (persona.keys.locked) {
+      return false;
+    }
+    var
+      password_hash = utils.shake128(
+        utils.sha256(persona.pass), 
+        16
+      ),
+      shake = utils.shake256(password_hash, 16),
+      iv = utils.uInt8ArrayFromString(shake),
+      cipher = crypto.createCipheriv(algorithm, password_hash, iv),
+      lockedKey = cipher.update(
+        persona.keys.privateKey, 
+        'utf8', 
+        'hex'
+      ) + cipher.final('hex'),
+      mnemonic;
     
-    var iv = utils.uInt8ArrayFromString(shake);
-
-    console.log("iv", iv);
-    
-    var crypto = require('crypto');
-    var algorithm = 'AES-256-CBC';
-    
-    var cipher = crypto.createCipheriv(algorithm, password_hash, iv);
-    
-    var encryptedData = cipher.update(
-      utils.stringify(obj), 
+    cipher = crypto.createCipheriv(algorithm, password_hash, iv);
+    mnemonic = cipher.update(
+      persona.keys.mnemonic, 
       'utf8', 
       'hex'
     ) + cipher.final('hex');
-    console.log("encryptedData", encryptedData);
     
-    result = {
-      "encryptedData": encryptedData
+    persona.keys = {
+      "public": persona.keys.publicKey,
+      "publicBuffer": persona.keys.publicBuffer,
+      "locked": lockedKey,
+      "mnemonic": mnemonic
     };
-    return result;
+    return utils.stringify(persona.keys);
+  },
+  unlock = function(persona) {
+    if (persona.keys.privateKey || !persona.pass || !persona.pass.length) {
+      return false;
+    }
+    var 
+      password_hash = utils.shake128(
+        utils.sha256(persona.pass), 
+        16
+      ),
+      shake = utils.shake256(password_hash, 16),
+      iv = utils.uInt8ArrayFromString(shake),
+      decipher = crypto.createDecipheriv(algorithm, password_hash, iv),
+      privateKey = decipher.update(
+        persona.keys.locked, 
+        'hex', 
+        'utf8'
+      ) + decipher.final('utf8'),
+      mnemonic;
+    decipher = crypto.createDecipheriv(algorithm, password_hash, iv),
+    mnemonic = decipher.update(
+      persona.keys.mnemonic, 
+      'hex', 
+      'utf8'
+    ) + decipher.final('utf8');
+      
+    persona.keys = {
+      "publicKey": persona.keys.public,
+      "privateKey": privateKey,
+      "mnemonic": mnemonic
+    };
+    utils.setKeyPair(persona);
+    return utils.stringify(persona.keys);
   },
   walletAPI = {
-    "load": function(persona) {
-      console.log("wallet.load", persona);
-      var
-        name = persona.name,
-        obj = persona.data,
-        fileName = name.replace(/\s/g, '_'),
-        srcPath = path.resolve(walletPath, fileName),
-        contents;
-      try {
-        contents = jfs.readFileSync(srcPath);
-      } catch (e) {
-        // smother error
-      }
-      console.log("contents", contents);
-      
-      if (contents) {
-        var password_hash = utils.getHash(
-          utils.getHash(
-            obj.pass, 
-            "SHA-3-256"
-          ), 
-          "SHAKE-128",
-          16
-        );
-        console.log("password_hash", password_hash);
-
-        var shake = utils.getHash(password_hash, "SHAKE-256", 16);
-        console.log("shake", shake);
-        
-        var iv = utils.uInt8ArrayFromString(shake);
-
-        console.log("iv", iv);
-        
-        var crypto = require('crypto');
-        var algorithm = 'AES-256-CBC';
-        
-        var cipher = crypto.createCipheriv(algorithm, password_hash, iv);
-        
-        var decipher = crypto.createDecipheriv(algorithm, password_hash, iv);
-        
-        var decrypted = decipher.update(contents.encryptedData, 'hex', 'utf8') + decipher.final('utf8');
-        console.log("decrypted", decrypted);
-        
-        var result = JSON.parse(decrypted);
-        
-        result.bufferKeys = {
-          "publicKey": utils.uInt8ArrayFromString(result.publicKey), 
-          "secretKey":utils.uInt8ArrayFromString(result.privateKey)
-        };
-        
-        contents = result;
-        
-      }
-      // just return persona.data
-      return contents;
-    },
-    "save": function(persona) {
-      console.log("wallet.save", persona);
-      var
-        name = persona.name,
-        fileName = name.replace(/\s/g, '_'),
-        destPath = path.resolve(walletPath, fileName),
-        prepData = prepareSaveData(persona.data);
-      console.log("prepData", prepData);
-      jfs.writeFileSync(destPath, prepData, {spaces: 2, EOL: '\r\n'});
-      return persona.data;
-    }
+    "load": load,
+    "save": save,
+    "lock": lock,
+    "unlock": unlock
   };
 
 module.exports = walletAPI;

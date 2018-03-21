@@ -2,7 +2,7 @@
 var 
   utils = require('../src/utils'),
   log = utils.log,
-  MINING_DIFFICULTY = 2,
+  MINING_DIFFICULTY = 3,
   MINING_CORES = 2,
   MINING_EXTRA = 'Mined by: {{env.USER}}@{{env.NAME}} on: {{env.HOSTTYPE}}',
   ids = [
@@ -232,6 +232,7 @@ var
         test.done();
       });
     },
+    
   };
 
 module.exports = tests;

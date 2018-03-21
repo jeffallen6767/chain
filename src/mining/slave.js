@@ -4,6 +4,10 @@ var
   utils = require('../utils'),
   // when this slave came online
   start = Date.now(),
+  // mining flag that shows when we've found a good hash
+  blockMined = false, 
+  // mining value that shows the blockchain index we should be working on ( -1 = OFF )
+  miningIndex = -1,
   // send message to master node
   sendMessage = function(data) {
     process.send({
@@ -28,10 +32,6 @@ var
         break;
     }
   },
-  // mining flag that shows when we've found a good hash
-  blockMined = false, 
-  // mining value that shows the blockchain index we should be working on ( -1 = OFF )
-  miningIndex = -1,
   // begin trying to mine for a good block using the miningData we got from master
   startMining = function(miningData) {
     // set a flag to show we haven't found a good block hash yet
@@ -43,67 +43,110 @@ var
   },
   // make one attempt at mining a good hash for the current block:
   mineOnce = function(miningData) {
-    // if we haven't found a good block yet, and we're 
-    // still trying to mine the index the master says we should:
-    if (!blockMined && miningIndex === miningData.newBlock.index) {
-      // give it a go ( but catch any errors )
-      try {
+    // give it a go ( but catch any errors )
+    try {
+      // if we haven't found a good block yet, and we're 
+      // still trying to mine the index the master says we should:
+      if (!blockMined && miningIndex === miningData.newBlock.index) {
         blockMined = mineBlock(miningData);
-      } catch (e) {
+      }
+      // did we mine a good block?
+      if (blockMined) {
         // reset the mining index ( off position )
         miningIndex = -1;
-        // let the mining master know we've got a problem
+        // update progress
+        updateProgress(miningData);
+        // generate success message
+        generateMiningSuccessMessage(miningData);
+        // let the mining master know we've mined a block:
         sendMessage({
-          topic: 'mining-error',
-          success: false,
-          error: {
-            code: e.code, 
-            stack: e.stack
-          },
+          topic: 'finished-mining',
+          success: blockMined,
           packet: miningData
         });
+      } else if (miningIndex == miningData.newBlock.index) {
+        // we didn't find a good block, but 
+        // we're still mining the correct index, should we suspend computation?
+        if (miningData.miningAttempts % miningData.pollInterval) {
+          // we've still got time to mine more on this trip around the event loop
+          mineOnce(miningData);
+        } else {
+          // update progress
+          updateProgress(miningData);
+          // report progress
+          reportProgress(miningData);
+          // let event loop continue - so we can receive messages etc...
+          setTimeout(function() {
+            // now we're on the next trip around the event loop, continue mining...
+            mineOnce(miningData);
+          }, 1);
+        }
       }
-    }
-    // did we mine a good block?
-    if (blockMined) {
+    } catch (e) {
       // reset the mining index ( off position )
       miningIndex = -1;
-      // let the mining master know we've mined a block:
+      // let the mining master know we've got a problem
       sendMessage({
-        topic: 'finished-mining',
-        success: blockMined,
+        topic: 'mining-error',
+        success: false,
+        error: {
+          code: e.code, 
+          stack: e.stack
+        },
         packet: miningData
       });
-    } else if (miningIndex == miningData.newBlock.index) {
-      // we didn't find a good block, but 
-      // we're still mining the correct index, should we suspend computation?
-      if (miningData.miningAttempts % miningData.pollInterval) {
-        // we've still got time to mine more on this trip around the event loop
-        mineOnce(miningData);
-      } else {
-        // let event loop continue - so we can receive messages etc...
-        setTimeout(function() {
-          // now we're on the next trip around the event loop, continue mining...
-          mineOnce(miningData);
-        }, 1);
-      }
     }
+  },
+  updateProgress = function(miningData) {
+    var 
+      // get the current time
+      time = utils.getTimeStamp();
+    // set the last report time to the current time
+    miningData.lastReportTime = time;
+    // calculate the elapsed time from current - start ( milliseconds )
+    miningData.elapsed = (time - miningData.timestamp) / 1000;
+    // calculate the # of calls to mineBlock per second
+    miningData.perSecond = Math.round(miningData.miningAttempts / miningData.elapsed);
+  },
+  reportProgress = function(miningData) {
+    // let the mining master how we're doing
+    sendMessage({
+      topic: 'report-progress',
+      packet: miningData.perSecond
+    });
+  },
+  generateMiningSuccessMessage = function(miningData) {
+    var 
+      newBlock = miningData.newBlock;
+    miningData.msg = [
+      miningData.handle,
+      "MINED BLOCK[",
+      newBlock.index,
+      "] difficulty", 
+      miningData.difficulty, 
+      "in", 
+      miningData.elapsed, 
+      "seconds @", 
+      miningData.perSecond, 
+      "/per second, hash:", 
+      newBlock.hash, 
+      "nonce:",
+      newBlock.nonce, 
+      "miningAttempts:",
+      miningData.miningAttempts
+    ].join(" ");
   },
   // try to mine a block
   mineBlock = function(miningData) {
     var
-      // number of zeros the hash must start with
-      difficulty = miningData.difficulty,
       // the block we're trying to mine
       newBlock = miningData.newBlock,
       // slice off (difficulty) characters from start of hash
-      test = newBlock.hash.slice(0, difficulty),
+      test = newBlock.hash.slice(0, miningData.difficulty),
       // parse the slice as a base-16 (hexidecimal) value
       value = parseInt(test, 16),
       // compare result with zero ( zero == done )
-      done = value === 0,
-      // get the current time
-      time = utils.getTimeStamp();
+      done = value === 0;
     
     // check to see if we still need to mine...
     if (!done) {
@@ -125,40 +168,6 @@ var
 
       // calculate a new hash for the block
       newBlock.hash = utils.getObjectHash(newBlock);
-    }
-    
-    // should we report progress?
-    if (done || (time - miningData.lastReportTime > 1000)) {
-      // set the last report time to the current time
-      miningData.lastReportTime = time;
-      // calculate the elapsed time from current - start ( milliseconds )
-      miningData.elapsed = (time - miningData.timestamp) / 1000;
-      // calculate the # of calls to mineBlock per second
-      miningData.perSecond = Math.round(miningData.miningAttempts / miningData.elapsed);
-      // TODO: report the current statistics
-      //console.log("mining difficulty", difficulty, "@", perSecond, "/per second", newBlock.hash, newBlock.nonce);
-    }
-
-    // we're done if we've actually found a good hash for a block
-    if (done) {
-      // we're done mining...generate a 'success' message
-      miningData.msg = [
-        miningData.handle,
-        "MINED BLOCK[",
-        newBlock.index,
-        "] difficulty", 
-        difficulty, 
-        "in", 
-        miningData.elapsed, 
-        "seconds @", 
-        miningData.perSecond, 
-        "/per second, hash:", 
-        newBlock.hash, 
-        "nonce:",
-        newBlock.nonce, 
-        "miningAttempts:",
-        miningData.miningAttempts
-      ].join(" ");
     }
     
     // return our status

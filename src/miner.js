@@ -22,6 +22,11 @@ var
   miningSlaves = function(callback) {
     allMiners.forEach(callback);
   },
+  miningStats = {
+    "difficulty": 0,
+    "perSecond": []
+  },
+  statReporter,
   // receive message from a slave
   messageFromSlave = function(message) {
     var 
@@ -63,8 +68,12 @@ var
             }
           });
           // hand control back to the process that requested we mine...
-          miningCallback(packet);
+          doneMining(packet);
         }
+        break;
+      case 'report-progress':
+        //console.log(utils.stringify(message));
+        miningStats.perSecond[id] = packet;
         break;
       case 'mining-error':
         // TODO: handle mining errors from slave
@@ -75,6 +84,32 @@ var
         console.error("messageFromSlave:ERROR uknown topic", topic, message);
         break;
     }
+  },
+  doneMining = function(packet) {
+    stopReporting();
+    miningCallback(packet);
+  },
+  startReporting = function(mills) {
+    stopReporting();
+    statReporter = setInterval(reportMiningStats, mills);
+  },
+  stopReporting = function() {
+    clearInterval(statReporter);
+  },
+  reportMiningStats = function() {
+    console.log(
+      "Mining @ dificulty:",
+      miningStats.difficulty, 
+      "miners:", 
+      miningStats.perSecond.length, 
+      "speed:", 
+      Math.round(
+        miningStats.perSecond.reduce(function(acc, amt) {
+          return acc + (amt || 0);
+        }, 0) / (miningStats.perSecond.length || 1)
+      ),
+      "per second"
+    );
   },
   // start up each slave miner in the cluster
   startSlaves = function(config) {
@@ -230,6 +265,10 @@ var
     
     // set the final callback so we can eventually return to the caller
     miningCallback = callback;
+    
+    // start the reporting daemon:
+    miningStats.difficulty = difficulty;
+    startReporting(1000);
     
     // each slave in the cluster will try to mine a good hash using a nonce value that is 
     // WITHIN it's partition of the total nonce space ( 0 to Number.MAX_SAFE_INTEGER )

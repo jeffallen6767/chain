@@ -11,6 +11,7 @@ var
   getPreviousHash = function(idx) {
     return idx ? blockChain[idx-1].hash : null;
   },
+  /*
   // mine a block
   mineBlock = function(miningData) {
     var
@@ -60,7 +61,7 @@ var
       }
     } else {
       // we're done mining...
-      /*
+      
       console.log(
         "BLOCKHASH FOUND!!! mining difficulty", 
         difficulty, 
@@ -77,11 +78,12 @@ var
         "elapsed time:",
         elapsed
       );
-      */
+      
     }
     
     return done;
   },
+  
   // create a block
   create = function(data, difficulty, nonce) {
     var
@@ -141,6 +143,7 @@ var
     
     return miningData;
   },
+  */
   // get all block hashes on blockchain
   getBlockHashes = function() {
     return blockChain.reduce(function(acc, block) {
@@ -180,13 +183,19 @@ var
     blockChain = [];
     return blockChain;
   },
+  submitNewBlock = function(newBlock) {
+    blockChain.push(newBlock);
+  },
   // the block API
   blockAPI = {
-    "create": create,
+    "getNextIndex": getNextIndex,
+    "getPreviousHash": getPreviousHash,
+    /* "create": create, */
     "getBlockHashes": getBlockHashes,
     "getBlockByIndex": getBlockByIndex,
     "getUserBalance": getUserBalance,
-    "resetBlockChain": resetBlockChain
+    "resetBlockChain": resetBlockChain,
+    "submitNewBlock": submitNewBlock
   };
 
 module.exports = blockAPI;

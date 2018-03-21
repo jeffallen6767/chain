@@ -149,6 +149,19 @@ var
       keyBuffer
     )).toString('hex');
   },
+  getMessageSignature = function(obj, keyBuffer) {
+    return Buffer.from(nacl.sign.detached(
+      objToUint8Array(obj), 
+      keyBuffer
+    )).toString('hex');
+  },
+  verifyMessageSignature = function(obj, signature, keyBuffer) {
+    return nacl.sign.detached.verify(
+      objToUint8Array(obj), 
+      signature, 
+      keyBuffer
+    );
+  },
   getRandomNonce = function() {
     var max_digits = 15,
       random_number = Math.floor(Math.random() * max_digits) - max_digits,
@@ -156,6 +169,15 @@ var
         ((Math.random() + "").replace(".", "").slice(random_number))
       );
     return random_nonce;
+  },
+  getTemplatized = function(env, template) {
+    return template.replace(/{{([a-z.]+)}}/ig, function() {
+      var 
+        args = [].slice.call(arguments),
+        key = args[1].replace("env.", ''),
+        value = env[key];
+      return value;
+    });
   },
   utilsAPI = {
     /* pass-throughs */
@@ -185,9 +207,11 @@ var
     "getKeyPair": getKeyPair,
     "setKeyPair": setKeyPair,
     "getSignedMessage": getSignedMessage,
+    "getMessageSignature": getMessageSignature,
+    "verifyMessageSignature": verifyMessageSignature,
     /* mining */
     "getRandomNonce": getRandomNonce,
-    
+    "getTemplatized": getTemplatized
     
   };
   

@@ -3,6 +3,7 @@ module.exports = {
   "block":require("./src/block.js"),
   "blockHeader":require("./src/blockHeader.js"),
   "hash":require("./src/hash.js"),
+  "miner":require("./src/miner.js"),
   "transaction":require("./src/transaction.js"),
   "utils":require("./src/utils.js"),
   "wallet":require("./src/wallet.js"),

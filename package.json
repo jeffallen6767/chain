@@ -23,6 +23,7 @@
   "dependencies": {
     "json-stable-stringify": "^1.0.1",
     "keccak-p-js": "https://github.com/jeffallen6767/keccak-p-js.git",
+    "pm2": "^2.10.1",
     "sha-256-js": "https://github.com/jeffallen6767/sha-256-js.git",
     "tweetnacl": "^1.0.0",
     "utf8": "^3.0.0"

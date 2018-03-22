@@ -10,6 +10,8 @@ var
   MAX_NUM = Number.MAX_SAFE_INTEGER,
   // path to script we'll use for our cluster of slave miners
   MINING_SLAVE_SCRIPT = './src/mining/slave.js',
+  // a way to optimize mining speed
+  MINING_OPTIMIZER = "::",
   // will contain meta data for each slave miner in our cluster
   allMiners = [],
   // if we ever finish mining, this is where we'll go next
@@ -48,7 +50,7 @@ var
     data.forEach(function(vals) {
       dat.perSecond += (vals.perSecond || 0);
       dat.lastHash.push(
-        (vals.lastHash || '????????????????').slice(cut)
+        vals.lastNonce + "=" + (vals.lastHash || '????????????????').slice(cut)
       );
     });
     return stats;
@@ -58,14 +60,13 @@ var
     var 
       stats = getStats();
     console.log(
-      "Mining dificulty[",
-      stats.dif, 
-      "] with",
       stats.num,
-      "miners at", 
-      Math.round(stats.dat.perSecond / stats.num),
+      "miners@", 
+      stats.dif, 
+      "=",
+      stats.dat.perSecond,
       "/ sec -",
-      stats.dat.lastHash.join("-")
+      stats.dat.lastHash.join("  ")
     );
   },
   // when we finish mining stop reporting and hand control back to the caller
@@ -290,7 +291,11 @@ var
       // good transactions ( valid )
       goodTransactionData = transactionData.good,
       // bad transactions ( invalid )
-      badTransactionData = transactionData.bad;
+      badTransactionData = transactionData.bad,
+      // mine flag, false == abort mining
+      continueMining = true,
+      // for hashing debug
+      getBlockHash = utils.getObjectHash;
     
     // set good transaction data
     data.transactions = goodTransactionData;
@@ -309,50 +314,90 @@ var
     // mining using ONLY the nonce values within that space...
     // NOTE that the space is shifted by the random_nonce value passed-in by the caller
     miningSlaves(function(miningSlave) {
-      var 
-        // the id of the slave
-        pm_id = miningSlave.pm2_env.pm_id,
-        // calculate the starting nonce value for this slave
-        slave_start_nonce = (nonce + miningSlave.slave_start_offset) % MAX_NUM,
-        // create the new block object
-        newBlock = {
-          "index": index,
-          "timestamp": timestamp,
-          "difficulty": difficulty,
-          "previousHash": previousHash,
-          "data": data,
-          "extra": miningSlave.extra,
-          "nonce": slave_start_nonce
-        },
-        // set up the mining scratch-pad for the miner
-        miningData = {
-          handle: miningSlave.handle,
-          slave_index: miningSlave.slave_index,
-          slave_offset_size: miningSlave.slave_offset_size,
-          slave_start_offset: miningSlave.slave_start_offset,
-          random_nonce: nonce,
-          slave_start_nonce: slave_start_nonce,
-          miningAttempts: 0,
-          difficulty: difficulty,
-          timestamp: timestamp,
-          lastReportTime: timestamp,
-          pollInterval: 1000,
-          newBlock: newBlock
-        };
+      if (continueMining) {
+        var 
+          // the id of the slave
+          pm_id = miningSlave.pm2_env.pm_id,
+          // calculate the starting nonce value for this slave
+          slave_start_nonce = (nonce + miningSlave.slave_start_offset) % MAX_NUM,
+          // zeta is extra data + nonce
+          hexNonce = options.hexNonce = slave_start_nonce.toString(16),
+          zeta = [miningSlave.extra, hexNonce].join(MINING_OPTIMIZER),
+          // create the new block object
+          newBlock = {
+            "index": index,
+            "timestamp": timestamp,
+            "difficulty": difficulty,
+            "previousHash": previousHash,
+            "data": data,
+            "zeta": zeta
+          },
+          // set up the mining scratch-pad for the miner
+          miningData = {
+            options: options,
+            optimize_zeta: MINING_OPTIMIZER,
+            handle: miningSlave.handle,
+            slave_index: miningSlave.slave_index,
+            slave_offset_size: miningSlave.slave_offset_size,
+            slave_start_offset: miningSlave.slave_start_offset,
+            random_nonce: nonce,
+            slave_start_nonce: slave_start_nonce,
+            slave_extra: miningSlave.extra,
+            current_nonce: slave_start_nonce,
+            miningAttempts: 0,
+            difficulty: difficulty,
+            timestamp: timestamp,
+            lastReportTime: timestamp,
+            pollInterval: 1000,
+            newBlock: newBlock,
+            freeBlock: JSON.parse(
+              utils.stringify(newBlock)
+            )
+          },
+          optiHasher;
 
-      // set the 1st hash on the new block
-      newBlock.hash = utils.getObjectHash(newBlock);
-      
-      // send a start-mining message to this particular slave
-      pm2.sendDataToProcessId(pm_id, {
-        topic: 'start-mining',
-        data: miningData,
-      }, function(err, res) {
-        if (err) {
-          // TODO: maybe handle this better?
-          throw err;
+        // prepare mining optimizer
+        options.OPTIMIZED_MODE = {
+          "parts": [],
+          "partition": function(str) {
+            return options.OPTIMIZED_MODE.parts = str.split(MINING_OPTIMIZER + hexNonce);
+          },
+          "increment": function() {
+            return MINING_OPTIMIZER + miningData.current_nonce.toString(16) + options.OPTIMIZED_MODE.parts[1];
+          }
+        };
+        optiHasher = options.OPTIMIZED_MODE.hasher = utils.getOptimalHasher(options.OPTIMIZED_MODE);
+        optiHasher.prepare(newBlock);
+
+        newBlock.hash = optiHasher.digest();
+        
+        // if difficulty is NOT zero we need to mine...
+        if (difficulty) {
+          // send a start-mining message to this particular slave
+          pm2.sendDataToProcessId(pm_id, {
+            topic: 'start-mining',
+            data: miningData,
+          }, function(err, res) {
+            if (err) {
+              // TODO: maybe handle this better?
+              throw err;
+            }
+          });
+        } else {
+          // no difficulty, so any hash will do
+          // add the newly mined block to the blockchain
+          block.submitNewBlock(newBlock);
+          // abort mining:
+          continueMining = false;
+          // reset current ( -1 = OFF )
+          currentMiningIndex = -1;
+          miningData.msg = "No mining necessary...";
+          // unwind stack, THEN hand control back to the process that requested we mine...
+          setImmediate(function() {
+            doneMining(miningData);
+          });
         }
-      });
+      }
     });
   },
   // the public mining api to expose

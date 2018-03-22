@@ -2,7 +2,7 @@
 var 
   utils = require('../src/utils'),
   log = utils.log,
-  MINING_DIFFICULTY = 4,
+  MINING_DIFFICULTY = 3,
   MINING_CORES = 2,
   MINING_EXTRA = 'Mined by: {{env.USER}}@{{env.NAME}} on: {{env.HOSTTYPE}}',
   ids = [
@@ -105,7 +105,7 @@ var
           test.endTime();
           
           console.log(msg);
-          //console.log(utils.stringify(newBlock));
+          console.log(utils.stringify(newBlock));
           
           // test that previousHash is null
           test.assert.identical(
@@ -141,7 +141,7 @@ var
           test.endTime();
           
           console.log(msg);
-          //console.log(utils.stringify(newBlock));
+          console.log(utils.stringify(newBlock));
           
           // 1 - test that # of transactions is correct
           test.assert.identical(
@@ -163,7 +163,7 @@ var
           // 4 - test that block.hash starts with MINING_DIFFICULTY zeros
           test.assert.identical(
             parseInt(
-              newBlock.hash.slice(0, MINING_DIFFICULTY),
+              newBlock.hash.slice(0, MINING_DIFFICULTY) || "0",
               16
             ),
             0,

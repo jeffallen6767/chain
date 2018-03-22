@@ -38,8 +38,25 @@ var
     blockMined = false;
     // set a value to show the index of the block in the blockchain we should be working on
     miningIndex = miningData.newBlock.index;
+    setOptimizer(miningData);
     // attempt to mine it
     mineOnce(miningData);
+  },
+  setOptimizer = function(miningData) {
+    // prepare mining optimizer
+    var 
+      options = miningData.options;
+    options.OPTIMIZED_MODE = {
+      "parts": [],
+      "partition": function(str) {
+        return options.OPTIMIZED_MODE.parts = str.split(miningData.optimize_zeta + options.hexNonce);
+      },
+      "increment": function() {
+        return miningData.optimize_zeta + miningData.current_nonce.toString(16) + options.OPTIMIZED_MODE.parts[1];
+      }
+    };
+    options.OPTIMIZED_MODE.hasher = utils.getOptimalHasher(options.OPTIMIZED_MODE);
+    options.OPTIMIZED_MODE.hasher.prepare(miningData.freeBlock);
   },
   // make one attempt at mining a good hash for the current block:
   mineOnce = function(miningData) {
@@ -114,13 +131,21 @@ var
       topic: 'report-progress',
       packet: {
         perSecond: miningData.perSecond,
-        lastHash: miningData.newBlock.hash
+        lastHash: miningData.newBlock.hash,
+        lastNonce: miningData.current_nonce.toString(16)
       }
     });
   },
   generateMiningSuccessMessage = function(miningData) {
     var 
       newBlock = miningData.newBlock;
+    
+    // latest zeta
+    newBlock.zeta = [
+      miningData.slave_extra, 
+      miningData.current_nonce.toString(16)
+    ].join(miningData.optimize_zeta);
+
     miningData.msg = [
       miningData.handle,
       "MINED BLOCK[",
@@ -133,8 +158,8 @@ var
       miningData.perSecond, 
       "/per second, hash:", 
       newBlock.hash, 
-      "nonce:",
-      newBlock.nonce, 
+      "zeta:",
+      newBlock.zeta, 
       "miningAttempts:",
       miningData.miningAttempts
     ].join(" ");
@@ -156,21 +181,26 @@ var
       // increment the number of mining attempts, check if we've reached our offset limit
       if (++miningData.miningAttempts % miningData.slave_offset_size) {
         // have we reached the integer limit for JavaScript?
-        if (newBlock.nonce === Number.MAX_SAFE_INTEGER) {
+        if (miningData.current_nonce === Number.MAX_SAFE_INTEGER) {
           // start over at zero
-          newBlock.nonce = 0;
+          miningData.current_nonce = 0;
         } else {
           // increment ( add one ) to the current nonce
-          newBlock.nonce++;
+          ++miningData.current_nonce;
         }
       } else {
         // end of offset, reset for another round of mining:
         newBlock.timestamp = utils.getTimeStamp();
-        newBlock.nonce = miningData.slave_start_nonce;
+        miningData.current_nonce = miningData.slave_start_nonce;
+        delete newBlock.hash;
+        miningData.freeBlock = JSON.parse(
+          utils.stringify(newBlock)
+        );
+        setOptimizer(miningData);
       }
-
-      // calculate a new hash for the block
-      newBlock.hash = utils.getObjectHash(newBlock);
+      
+      // calc next hash
+      newBlock.hash = miningData.options.OPTIMIZED_MODE.hasher.digest()
     }
     
     // return our status

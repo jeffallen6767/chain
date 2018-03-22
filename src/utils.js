@@ -36,6 +36,27 @@ var
       stringify(obj)
     );
   },
+  debugHash = function(obj) {
+    return hasher.keccak.mode("SHA-3-256").init().update(stringify(obj), null, true).digest(true);
+  },
+  getOptimalHasher = function(options) {
+    options.partition = options.partition || function(str) {
+      var result = options.parts = [str, ''];
+      return result;
+    };
+    options.increment = options.increment || function() {
+      return '';
+    };
+    var 
+      fast_hasher = hasher.keccak.mode("SHA-3-256", null, options || {}),
+      hasher_api = {
+        "prepare": function(obj) {
+          return fast_hasher.init().prepare_optimized(stringify(obj));
+        },
+        "digest": fast_hasher.digest
+      };
+    return hasher_api;
+  },
   bytes = function(byteString) {
     // return 2 char chunks
     return byteString.match(/.{1,2}/g);
@@ -211,7 +232,9 @@ var
     "verifyMessageSignature": verifyMessageSignature,
     /* mining */
     "getRandomNonce": getRandomNonce,
-    "getTemplatized": getTemplatized
+    "getTemplatized": getTemplatized,
+    "debugHash": debugHash,
+    "getOptimalHasher": getOptimalHasher
     
   };
   

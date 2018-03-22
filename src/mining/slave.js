@@ -112,7 +112,10 @@ var
     // let the mining master how we're doing
     sendMessage({
       topic: 'report-progress',
-      packet: miningData.perSecond
+      packet: {
+        perSecond: miningData.perSecond,
+        lastHash: miningData.newBlock.hash
+      }
     });
   },
   generateMiningSuccessMessage = function(miningData) {

@@ -22,11 +22,66 @@ var
   miningSlaves = function(callback) {
     allMiners.forEach(callback);
   },
+  // will hold stats sent back by mining slaves
   miningStats = {
     "difficulty": 0,
-    "perSecond": []
+    "data": []
   },
+  // will hold a ref to a reporting interval
   statReporter,
+  // prep stats for reporting
+  getStats = function() {
+    var
+      data = miningStats.data,
+      num = data.length,
+      dif = miningStats.difficulty,
+      cut = -1 * dif,
+      dat = {
+        "perSecond": 0,
+        "lastHash": []
+      },
+      stats = {
+        "num": num,
+        "dif": dif,
+        "dat": dat
+      };
+    data.forEach(function(vals) {
+      dat.perSecond += (vals.perSecond || 0);
+      dat.lastHash.push(
+        (vals.lastHash || '????????????????').slice(cut)
+      );
+    });
+    return stats;
+  },
+  // report the stats
+  reportMiningStats = function() {
+    var 
+      stats = getStats();
+    console.log(
+      "Mining dificulty[",
+      stats.dif, 
+      "] with",
+      stats.num,
+      "miners at", 
+      Math.round(stats.dat.perSecond / stats.num),
+      "/ sec -",
+      stats.dat.lastHash.join("-")
+    );
+  },
+  // when we finish mining stop reporting and hand control back to the caller
+  doneMining = function(packet) {
+    stopReporting();
+    miningCallback(packet);
+  },
+  // start reporting mining stats
+  startReporting = function(mills) {
+    stopReporting();
+    statReporter = setInterval(reportMiningStats, mills);
+  },
+  // stop reporting mining stats
+  stopReporting = function() {
+    clearInterval(statReporter);
+  },
   // receive message from a slave
   messageFromSlave = function(message) {
     var 
@@ -73,7 +128,7 @@ var
         break;
       case 'report-progress':
         //console.log(utils.stringify(message));
-        miningStats.perSecond[id] = packet;
+        miningStats.data[id] = packet;
         break;
       case 'mining-error':
         // TODO: handle mining errors from slave
@@ -84,32 +139,6 @@ var
         console.error("messageFromSlave:ERROR uknown topic", topic, message);
         break;
     }
-  },
-  doneMining = function(packet) {
-    stopReporting();
-    miningCallback(packet);
-  },
-  startReporting = function(mills) {
-    stopReporting();
-    statReporter = setInterval(reportMiningStats, mills);
-  },
-  stopReporting = function() {
-    clearInterval(statReporter);
-  },
-  reportMiningStats = function() {
-    console.log(
-      "Mining @ dificulty:",
-      miningStats.difficulty, 
-      "miners:", 
-      miningStats.perSecond.length, 
-      "speed:", 
-      Math.round(
-        miningStats.perSecond.reduce(function(acc, amt) {
-          return acc + (amt || 0);
-        }, 0) / (miningStats.perSecond.length || 1)
-      ),
-      "per second"
-    );
   },
   // start up each slave miner in the cluster
   startSlaves = function(config) {
@@ -239,12 +268,15 @@ var
     });
   },
   // API - try to mine a new block
-  mine = function(data, difficulty, nonce, callback) {
+  mine = function(options, callback) {
+    // data, difficulty, nonce
     var
+      // only the data field is required:
+      data = options.data,
       // set up the mining difficulty ( number of zeros the hash must start with, zero == none )
-      difficulty = difficulty || 0,
+      difficulty = options.difficulty || 0,
       // set up the nonce, a number incremented at each mining attempt ( this alters the resulting hash )
-      nonce = nonce || 0,
+      nonce = options.nonce || 0,
       // if there's no difficulty, we don't even have to check for a good hash, we can just use whatever
       mining = difficulty ? true : false,
       // get the next available block index
@@ -266,9 +298,10 @@ var
     // set the final callback so we can eventually return to the caller
     miningCallback = callback;
     
-    // start the reporting daemon:
+    // save the current difficulty for reporting
     miningStats.difficulty = difficulty;
-    startReporting(1000);
+    // start the periodic reporter:
+    startReporting(options.pollInterval || 1000);
     
     // each slave in the cluster will try to mine a good hash using a nonce value that is 
     // WITHIN it's partition of the total nonce space ( 0 to Number.MAX_SAFE_INTEGER )

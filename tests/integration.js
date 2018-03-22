@@ -2,7 +2,7 @@
 var 
   utils = require('../src/utils'),
   log = utils.log,
-  MINING_DIFFICULTY = 3,
+  MINING_DIFFICULTY = 4,
   MINING_CORES = 2,
   MINING_EXTRA = 'Mined by: {{env.USER}}@{{env.NAME}} on: {{env.HOSTTYPE}}',
   ids = [
@@ -94,11 +94,11 @@ var
       // create genesis block
       test.startTime();
       
-      chain.miner.mine(
-        data["genesis"], 
-        MINING_DIFFICULTY, 
-        utils.getRandomNonce(), 
-        function(blockData) {
+      chain.miner.mine({
+        "data": data["genesis"], 
+        "difficulty": MINING_DIFFICULTY, 
+        "nonce": utils.getRandomNonce()
+      }, function(blockData) {
           var 
             msg = blockData.msg,
             newBlock = blockData.newBlock;
@@ -130,11 +130,11 @@ var
           );
         });
         
-      chain.miner.mine(
-        {"transactions": transactions}, 
-        MINING_DIFFICULTY, 
-        utils.getRandomNonce(), 
-        function(blockData) {
+      chain.miner.mine({
+        "data": {"transactions": transactions}, 
+        "difficulty": MINING_DIFFICULTY, 
+        "nonce": utils.getRandomNonce()
+      }, function(blockData) {
           var 
             msg = blockData.msg,
             newBlock = blockData.newBlock;

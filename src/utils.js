@@ -81,45 +81,6 @@ var
       return String.fromCharCode(num);
     }).join('');
   },
-  verifyTransaction = function(transaction) {
-    //console.log("verifyTransaction", transaction);
-    var
-      // verifiy that the transaction came FROM the sender
-      payload = transaction.payload,
-      messageArray = nacl.sign.open(
-        uInt8ArrayFromString(
-          transaction.signedMessage
-        ), 
-        uInt8ArrayFromString(
-          payload.sender
-        )
-      ),
-      result = messageArray && (stringify(payload) === stringFromUint8Array(messageArray));
-    
-    return result;
-  },
-  validTransaction = function(transaction) {
-    return transaction.payload.amount > 0;
-  },
-  getTransactionData = function(transactions) {
-    var
-      result = {
-        "good": [],
-        "bad": []
-      };
-    transactions.forEach(function(transaction, idx) {
-      if (verifyTransaction(transaction) && validTransaction(transaction)) {
-        result.good.push(
-          transaction
-        );
-      } else {
-        result.bad.push(
-          transaction
-        );
-      }
-    });
-    return result;
-  },
   createRandomBytes = function(num) {
     return nacl.randomBytes(num);
   },
@@ -221,9 +182,10 @@ var
     "objToUint8Array": objToUint8Array,
     "hexFromUInt8Array": hexFromUInt8Array,
     "uInt8ArrayFromString": uInt8ArrayFromString,
-    /* transactions */
+    /* transactions
     "verifyTransaction": verifyTransaction,
     "getTransactionData": getTransactionData,
+    */
     /* nacl signatures */
     "getKeyPair": getKeyPair,
     "setKeyPair": setKeyPair,
@@ -239,3 +201,47 @@ var
   };
   
 module.exports = utilsAPI;
+
+
+/*
+  verifyTransaction = function(transaction) {
+    //console.log("verifyTransaction", transaction);
+    var
+      // verifiy that the transaction came FROM the sender
+      payload = transaction.payload,
+      messageArray = nacl.sign.open(
+        uInt8ArrayFromString(
+          transaction.signedMessage
+        ), 
+        uInt8ArrayFromString(
+          payload.sender
+        )
+      ),
+      result = messageArray && (stringify(payload) === stringFromUint8Array(messageArray));
+    
+    return result;
+  },
+  validTransaction = function(transaction) {
+    return transaction.payload.amount > 0;
+  },
+  getTransactionData = function(transactions) {
+    var
+      result = {
+        "good": [],
+        "bad": []
+      };
+    transactions.forEach(function(transaction, idx) {
+      if (verifyTransaction(transaction) && validTransaction(transaction)) {
+        result.good.push(
+          transaction
+        );
+      } else {
+        result.bad.push(
+          transaction
+        );
+      }
+    });
+    return result;
+  },
+  */
+  

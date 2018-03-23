@@ -13,6 +13,14 @@ var
     {
       "name": "joe schmoe",
       "pass": "Some other secret that only joe knows..."
+    },
+    {
+      "name": "Julie Schmoolie",
+      "pass": "She has another secret..."
+    },
+    {
+      "name": "Fred Rocker",
+      "pass": "Rock n roll will never die..."
     }
   ],
 
@@ -23,10 +31,12 @@ var
   },
   
   txns = [
-    // user[0] sends 2 to user[1]
-    [0, 1, 2],
-    // user[1] sends 4 to user[0]
-    [1, 0, 4]
+    // user[0] sends 30 to multiple users
+    [0, [[1, 5],[2, 10],[3, 15]]]
+  ],
+  
+  balances = [
+    70, 5, 10, 15
   ],
   
   tests = {
@@ -73,7 +83,7 @@ var
     "start miners": function(test, chain) {
 
       test.startTime();
-
+      
       chain.miner.start({
         "max": MINING_CORES,
         "extra": MINING_EXTRA,
@@ -94,24 +104,34 @@ var
       // create genesis block
       test.startTime();
       
+      var 
+        user = ids[0],
+        keys = user.keys;
+      
+      //console.log("user", user);
+      //console.log("keys", keys);
+      
+      //process.exit(1);
+      
       chain.miner.mine({
         "data": data["genesis"], 
         "difficulty": MINING_DIFFICULTY, 
-        "nonce": utils.getRandomNonce()
+        "nonce": utils.getRandomNonce(),
+        "keys": keys
       }, function(blockData) {
           var 
             msg = blockData.msg,
             newBlock = blockData.newBlock;
           test.endTime();
           
-          console.log(msg);
-          console.log(utils.stringify(newBlock));
+          //console.log(msg);
+          //console.log(utils.stringify(newBlock));
           
           // test that previousHash is null
           test.assert.identical(
             newBlock.previousHash,
-            null,
-            "test that previousHash is null"
+            '',
+            "test that previousHash is empty string"
           );
             
           test.done();
@@ -121,42 +141,81 @@ var
     "create transactions": function(test, chain) {
       // create transactions on the blockchain
       test.startTime();
+      
       var 
-        transactions = txns.map(function(transaction, idx) {
-          return chain.transaction.create(
-            ids[transaction[0]].keys, 
-            ids[transaction[1]].keys,
-            transaction[2]
-          );
-        });
-        
+        user = ids[0],
+        keys = user.keys,
+        // [0, [[1, 5],[2, 10],[3, 15]]]
+        txn = txns[0],
+        // from:
+        senderIndex = txn[0],
+        sender = ids[senderIndex],
+        // to:
+        recipients = txn[1],
+        transactions = recipients.map(function(txnData) {
+          var 
+            receiverIndex = txnData[0],
+            receiver = ids[receiverIndex],
+            amount = txnData[1],
+            result = {
+              "receiver": receiver.keys.publicKey, 
+              "amount": amount
+            };
+          // {"receiver": receiver.keys.publicKey, "amount": amount}
+          return result;
+        }),
+        newTransaction = chain.transaction.getNewTransaction(
+          sender.keys,
+          transactions
+        ),
+        added = chain.transaction.addTransaction(newTransaction);
+      
+      //console.log("-----------> added", added);
+      
       chain.miner.mine({
-        "data": {"transactions": transactions}, 
+        "data": {}, 
         "difficulty": MINING_DIFFICULTY, 
-        "nonce": utils.getRandomNonce()
+        "nonce": utils.getRandomNonce(),
+        "keys": keys
       }, function(blockData) {
           var 
             msg = blockData.msg,
             newBlock = blockData.newBlock;
           test.endTime();
           
-          console.log(msg);
-          console.log(utils.stringify(newBlock));
+          //console.log(msg);
+          //console.log(utils.stringify(newBlock));
           
           // 1 - test that # of transactions is correct
           test.assert.identical(
             newBlock.data.transactions.length,
-            transactions.length,
+            txns.length + 1,
             "test that # of transactions is correct"
           );
           
-          // 2 & 3 - test that each transaction made it onto the blockchain
+          var 
+            blockTransactions = newBlock.data.transactions,
+            lastIdx = blockTransactions.length - 1,
+            lastTransaction = blockTransactions[lastIdx],
+            txMap = lastTransaction.txOuts.reduce(function(obj, txOut) {
+              obj[txOut.address] = txOut.amount;
+              return obj;
+            }, {});
+          
+          //console.log("lastTransaction", lastTransaction);
+          //console.log("txMap", txMap);
+          
+          // 2 & 3 - test that each payee made it into the transaction
           transactions.forEach(function(transaction, idx) {
             //console.log("transaction", idx, transaction);
+            var 
+              key = transaction.receiver,
+              expectedAmount = txMap[key];
+            
             test.assert.identical(
-              utils.sha256(utils.stringify(newBlock.data.transactions[idx])),
-              utils.sha256(utils.stringify(transaction)),
-              "test that transaction[" + idx + "] made it onto the blockchain"
+              expectedAmount,
+              transaction.amount,
+              "test that payee[" + idx + "] was paid correct amount"
             );
           });
           
@@ -190,7 +249,7 @@ var
       var 
         blockHashes = chain.block.getBlockHashes(),
         users = ids.map(function(user) {
-          user.balance = chain.block.getUserBalance(user.keys);
+          user.balance = chain.block.getUserBalance(user);
           return user;
         });
       
@@ -200,19 +259,14 @@ var
       
       test.endTime();
       
-      // test that users[0] balance is correct
-      test.assert.identical(
-        users[0].balance,
-        2,
-        "test that balance for " + users[0].name + " is correct"
-      );
-      
-      // test that users[0] balance is correct
-      test.assert.identical(
-        users[1].balance,
-        -2,
-        "test that balance for " + users[1].name + " is correct"
-      );
+      users.forEach(function(user, idx) {
+        // test that users[idx] balance is correct
+        test.assert.identical(
+          users[idx].balance,
+          balances[idx],
+          "test that balance for " + users[idx].name + " is correct"
+        );
+      });
       
       test.done();
     },

@@ -6,6 +6,8 @@ var
   utils = require("./utils"),
   // block for managing the blockchain
   block = require("./block"),
+  // transaction for managing the transactions
+  transaction = require("./transaction"),
   // maximum nonce we can deal with in javascript without issues
   MAX_NUM = Number.MAX_SAFE_INTEGER,
   // path to script we'll use for our cluster of slave miners
@@ -272,6 +274,8 @@ var
   mine = function(options, callback) {
     // data, difficulty, nonce
     var
+      // keys
+      keys = options.keys,
       // only the data field is required:
       data = options.data,
       // set up the mining difficulty ( number of zeros the hash must start with, zero == none )
@@ -286,19 +290,23 @@ var
       previousHash = block.getPreviousHash(index),
       // get the current time
       timestamp = utils.getTimeStamp(),
+      // mine flag, false == abort mining
+      continueMining = true;
+      
+      /*
       // calculate the transaction data
       transactionData = utils.getTransactionData(data.transactions || []),
       // good transactions ( valid )
       goodTransactionData = transactionData.good,
       // bad transactions ( invalid )
       badTransactionData = transactionData.bad,
-      // mine flag, false == abort mining
-      continueMining = true,
       // for hashing debug
       getBlockHash = utils.getObjectHash;
+      */
+      
     
     // set good transaction data
-    data.transactions = goodTransactionData;
+    data.transactions = transaction.getTransactions(keys.publicKey, index);
     
     // set the final callback so we can eventually return to the caller
     miningCallback = callback;
@@ -350,6 +358,7 @@ var
             lastReportTime: timestamp,
             pollInterval: 1000,
             newBlock: newBlock,
+            transactions: data.transactions,
             freeBlock: JSON.parse(
               utils.stringify(newBlock)
             )

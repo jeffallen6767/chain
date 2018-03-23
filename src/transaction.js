@@ -4,16 +4,19 @@ var
   utils = require("./utils"),
   // TODO: dynamic coinbase amount
   COINBASE_AMOUNT = 50,
+  todoTransactions = [],
   unspentTxOutputs = [],
-  updateUnspentTxOuts = function(newTxns) {
+  updateUnspentTxOuts = function(newTxns, blockIdx) {
+    //console.log("updateUnspentTxOuts", blockIdx, newTxns);
     var 
       unspentTxOuts = newTxns.map(function(txn) {
-        return txn.txOuts.map(function(txOut, txOutIdx) {
+        return txn.txOuts.map(function(aTxOut, txOutIdx) {
           return unspentTxOut(
-            txn.id,
+            blockIdx,
+            txn.txId,
             txOutIdx,
-            txOut.address,
-            txOut.amount
+            aTxOut.address,
+            aTxOut.amount
           );
         });
       }).reduce(function(acc, items) {
@@ -25,8 +28,9 @@ var
         return acc.concat(items);
       }).map(function(txIn) {
         return unspentTxOut(
-          txIn.outId,
-          txIn.outIdx,
+          txIn.blkIdx,
+          txIn.txOutId,
+          txIn.txOutIdx,
           '',
           0
         );
@@ -39,21 +43,27 @@ var
         );
       }).concat(unspentTxOuts);
     // update:
+    //console.log("updateUnspentTxOuts", newTxns, result);
     unspentTxOutputs = result;
   },
   findUnspentTxOut = function(txOutId, txOutIdx, txOuts) {
+    //console.log("findUnspentTxOut", txOutId, txOutIdx, txOuts);
     var 
-      num = txOuts.length;
+      num = txOuts.length,
+      aTxOut, x;
+    
     for (x=0; x<num; x++) {
-      txOut = txOuts[x];
-      if (txOut.txOutId === txOutId && txOut.txOutIdx === txOutIdx) {
-        return txOut;
+      aTxOut = txOuts[x];
+      if (aTxOut.txOutId === txOutId && aTxOut.txOutIdx === txOutIdx) {
+        return aTxOut;
       }
     }
+    
     return false;
   },
-  unspentTxOut = function(txOutId, txOutIdx, address, amount) {
+  unspentTxOut = function(blockIdx, txOutId, txOutIdx, address, amount) {
     return {
+      "blockIdx": blockIdx,
       "txOutId": txOutId,
       "txOutIdx": txOutIdx,
       "address": address,
@@ -66,16 +76,18 @@ var
       "amount": amount
     };
   },
-  txIn = function(outId, outIdx, signature) {
+  txIn = function(blkIdx, txOutId, txOutIdx, signature) {
+    //console.log("txIn = function(", blkIdx, ", ", txOutId, ", ", txOutIdx, ", ", signature, ")");
     return {
-      "outId": outId,
-      "outIdx": outIdx,
+      "blkIdx": blkIdx,
+      "txOutId": txOutId,
+      "txOutIdx": txOutIdx,
       "signature": signature
     };
   },
-  txn = function(id, txIns, txOuts) {
+  txn = function(txId, txIns, txOuts) {
     return {
-      "id": id,
+      "txId": txId,
       "txIns": txIns,
       "txOuts": txOuts
     };
@@ -83,53 +95,54 @@ var
   getTxnId = function(txn) {
     return getTxnIdHash(txn.txIns, txn.txOuts);
   },
-  getTxnIdHash = function(tIns, tOuts) {
+  getTxnIdHash = function(txIns, txOuts) {
     var 
-      strTxIn = tIns.reduce(function(acc, input) {
-        acc.push(input.outId, input.outIdx);
+      strTxIn = txIns.reduce(function(acc, input) {
+        acc.push(input.txOutId, input.txOutIdx);
         return acc;
       }, []).join(''),
-      strTxOut = tOuts.reduce(function(acc, output) {
+      strTxOut = txOuts.reduce(function(acc, output) {
         acc.push(output.address, output.amount);
         return acc;
       }, []).join(''),
       txId = utils.sha256(strTxIn + strTxOut);
     return txId;
   },
-  validTransaction = function(txn, txOuts) {
-    if (typeof txn.id !== 'string') {
-      console.error("validTransaction:error typeof txn.id !== 'string' [" + typeof txn.id + "]");
+  validTransaction = function(txn) {//, txOuts
+    if (typeof txn.txId !== 'string') {
+      throw new Error("validTransaction:error typeof txn.txId !== 'string' [" + typeof txn.txId + "]");
       return false;
     }
     if (typeof txn.txIns !== 'object' || !Array.isArray(txn.txIns)) {
-      console.error("validTransaction:error typeof txn.txIns !== 'object' || !Array.isArray(txn.txIns) [" + typeof txn.txIns + "," + !Array.isArray(txn.txIns) + "]");
+      throw new Error("validTransaction:error typeof txn.txIns !== 'object' || !Array.isArray(txn.txIns) [" + typeof txn.txIns + "," + !Array.isArray(txn.txIns) + "]");
       return false;
     }
     if (typeof txn.txOuts !== 'object' || !Array.isArray(txn.txOuts)) {
-      console.error("validTransaction:error typeof txn.txOuts !== 'object' || !Array.isArray(txn.txOuts) [" + typeof txn.txOuts + "," + !Array.isArray(txn.txIns) + "]");
+      throw new Error("validTransaction:error typeof txn.txOuts !== 'object' || !Array.isArray(txn.txOuts) [" + typeof txn.txOuts + "," + !Array.isArray(txn.txIns) + "]");
       return false;
     }
-    if (getTxnId(txn) !== txn.id) {
-      console.error("validTransaction:error getTxnId(txn) !== txn.id [" + getTxnId(txn) + " !== " + txn.id + "]");
+    if (getTxnId(txn) !== txn.txId) {
+      throw new Error("validTransaction:error getTxnId(txn) !== txn.txId [" + getTxnId(txn) + " !== " + txn.txId + "]");
       return false;
     }
     return validTxnValues(txn);
   },
   validCoinbaseTxn = function(txn, blockIndex) {
+    //console.log("validCoinbaseTxn", txn, blockIndex);
     if (txn.txIns.length !== 1) {
-      console.error("validCoinbaseTxn:error the coinbase transaction requires one txIn [" + txn.txIns.length + "]");
+      throw new Error("validCoinbaseTxn:error the coinbase transaction requires one txIn [" + txn.txIns.length + "]");
       return false;
     }
     if (txn.txIns[0].txOutIdx !== blockIndex) {
-      console.error("validCoinbaseTxn:error the coinbase transaction requires txIn.txOutIdx === blockindex [" + txIn.txOutIdx + " === " + blockindex + "]");
+      throw new Error("validCoinbaseTxn:error the coinbase transaction requires txIn.txOutIdx === blockIndex [" + txIn.txOutIdx + " === " + blockIndex + "]");
       return false;
     }
     if (txn.txOuts.length !== 1) {
-      console.error("validCoinbaseTxn:error the coinbase transaction requires one txOut [" + txn.txOuts.length + "]");
+      throw new Error("validCoinbaseTxn:error the coinbase transaction requires one txOut [" + txn.txOuts.length + "]");
       return false;
     }
     if (txn.txOuts[0].amount !== COINBASE_AMOUNT) {
-      console.error("validCoinbaseTxn:error the coinbase transaction requires txOut.amount === COINBASE_AMOUNT [" + txn.txOuts[0].amount + " === " + COINBASE_AMOUNT + "]");
+      throw new Error("validCoinbaseTxn:error the coinbase transaction requires txOut.amount === COINBASE_AMOUNT [" + txn.txOuts[0].amount + " === " + COINBASE_AMOUNT + "]");
       return false;
     }
     return true;
@@ -142,30 +155,32 @@ var
         return acc && val;
       }, true);
     if (!txInsOk) {
-      console.error("validTxnValues:error some of the txIns are invalid in txn [" + txn.id + "] " + utils.stringify(txn.txIns));
+      throw new Error("validTxnValues:error some of the txIns are invalid in txn [" + txn.txId + "] " + utils.stringify(txn.txIns));
       return false;
     }
     return validTxOuts(txn);
   },
   validTxIn = function(txIn, txn) {
+    //console.log("validTxIn", txIn, txn);
     var 
       txOut = findUnspentTxOut(
-        txIn.outId,
-        txIn.outIdx,
+        txIn.txOutId,
+        txIn.txOutIdx,
         unspentTxOutputs
       ),
       result;
     if (!txOut) {
-      console.error("validTxIn:error referenced txOut not found [" + txIn.outId + ", " + txIn.outIdx + "] " + utils.stringify(unspentTxOutputs));
+      throw new Error("validTxIn:error referenced txOut not found [" + txIn.txOutId + ", " + txIn.txOutIdx + "] " + utils.stringify(unspentTxOutputs));
       return false;
     }
+    //console.log("--utils.verify", txn.txId, txIn.signature, txOut.address, txn);
     result = utils.verifyMessageSignature(
-      txn.id,
-      txIn.signature,
-      txOut.address
+      txn.txId,
+      utils.uInt8ArrayFromString(txIn.signature),
+      utils.uInt8ArrayFromString(txOut.address)
     );
     if (!result) {
-      console.error("validTxIn:error invalid signature [" + txn.id + ", " + txIn.signature + ", " + txOut.address + "]");
+      throw new Error("validTxIn:error invalid signature [" + txn.txId + ", " + txIn.signature + ", " + txOut.address + "]");
       return false;
     }
     return result;
@@ -183,7 +198,7 @@ var
         return total + amount;
       }, 0);
     if (totalIn !== totalOut) {
-      console.error("validTxOuts:error totalIn !== totalOut [" + totalIn + " !== " + totalOut + "]");
+      throw new Error("validTxOuts:error totalIn !== totalOut [" + totalIn + " !== " + totalOut + "]");
       return false;
     }
     return totalOut;
@@ -191,37 +206,37 @@ var
   getTxInAmount = function(txIn) {
     var 
       txOut = findUnspentTxOut(
-        txIn.outId,
-        txIn.outIdx,
+        txIn.txOutId,
+        txIn.txOutIdx,
         unspentTxOutputs
       );
     if (!txOut) {
-      console.error("getTxInAmount:error referenced txOut not found [" + txIn.outId + ", " + txIn.outIdx + "] " + utils.stringify(unspentTxOutputs));
+      throw new Error("getTxInAmount:error referenced txOut not found [" + txIn.txOutId + ", " + txIn.txOutIdx + "] " + utils.stringify(unspentTxOutputs));
       return false;
     }
     return txOut.amount;
   },
-  validateBlockTxns = function(txns, blockindex) {
+  validateBlockTxns = function(txns, blockIndex) {
     var 
       coinbaseTxn = txns[0],
       allTxnIns,
       noDuplicateTxnIns,
       normalTxns;
     if (!validCoinbaseTxn(coinbaseTxn, blockIndex)) {
-      console.error("validateBlockTxns:error invalid coinbase txn for blockindex [" + blockIndex + "] " + utils.stringify(coinbaseTxn));
+      throw new Error("validateBlockTxns:error invalid coinbase txn for blockIndex [" + blockIndex + "] " + utils.stringify(coinbaseTxn));
       return false;
     }
     // check for duplicate txIns
     allTxnIns = txns.map(function(txn) {
       return txn.txIns.map(function(txIn) {
-        return [txIn.outId, txIn.outIdx].join("_");
+        return [txIn.txOutId, txIn.txOutIdx].join("_");
       });
     }).flatten();
     noDuplicateTxnIns = allTxnIns.sort().reduce(function(acc, val, idx, values) {
       return acc && val !== values[idx-1];
     });
     if (!noDuplicateTxnIns) {
-      console.error("validateBlockTxns:error txns contain duplicate txIns " + utils.stringify(allTxnIns));
+      throw new Error("validateBlockTxns:error txns contain duplicate txIns " + utils.stringify(allTxnIns));
       return false;
     }
     normalTxns = txns.slice(1);
@@ -231,26 +246,146 @@ var
       return acc && val;
     }, true);
   },
-  signTxn = function(txn, txInIdx, privateBuffer, unspentTxOuts) {
+
+  signTxn = function(txId, sender) {
     var 
-      txIn = txn.txIns[txInIdx],
-      data = txn.id,
-      // todo: unspent txouts
       signature = utils.getMessageSignature(
-        data, 
-        privateBuffer
+        txId, 
+        sender.privateBuffer
       );
+      
     return signature;
   },
-  getCoinbaseTransaction = function(address, blockindex) {
+  getCoinbaseTransaction = function(address, blockIndex) {
     var 
-      coinIns = [txIn('', blockindex, '')],
+      coinIns = [txIn(blockIndex, '', blockIndex, '')],
       coinOuts = [txOut(address, COINBASE_AMOUNT)],
       coinId = getTxnIdHash(coinIns, coinOuts),
       coinbaseTxn = txn(coinId, coinIns, coinOuts);
     return coinbaseTxn;
   },
-  transaction = {
+  getNewTransaction = function(sender, payments) {
+    var 
+      txDetails = generatePaymentDetails(sender, payments);
+    return txDetails.valid ? createNewTransaction(txDetails, sender) : false;
+  },
+  // only called if details ARE valid
+  createNewTransaction = function(txDetails, sender) {
+    var 
+      txIns = txDetails.txIns,
+      txOuts = txDetails.txOuts,
+      txId = getTxnIdHash(txIns, txOuts),
+      signature = signTxn(txId, sender),
+      // must unlock the unspent txIns before we can validate/use in txOuts
+      unlockedTxIns = txIns.map(function(unspent) {
+        unspent.signature = signature;
+        return unspent;
+      }),
+      newTxn = txn(txId, unlockedTxIns, txOuts);
+    
+    return newTxn;
+  },
+  
+  getTxOutData = function(payments) {
+    var 
+      payees = payments.map(function(payment) {
+        return txOut(
+          payment.receiver, 
+          payment.amount
+        );
+      }),
+      total = payees.reduce(function(total, aTxOut) {
+        return total + aTxOut.amount;
+      }, 0),
+      valid = total > 0,
+      result = {
+        "payees": payees,
+        "total": total,
+        "valid": valid
+      };
+    //console.log("->getTxOutData", payments, payees, total, valid, result);
+    return result;
+  },
+  getTxInData = function(amount) {
+    var 
+      total = 0,
+      // fifo algo
+      payers = unspentTxOutputs.filter(function(unspent) {
+        if (amount > total) {
+          total += unspent.amount;
+          return true;
+        } else {
+          return false;
+        }
+      }),
+      valid = total >= amount,
+      result = {
+        "total": total,
+        "payers": payers,
+        "valid": valid
+      };
+    //console.log("->getTxInData", amount, total, payers, valid, result);
+    return result;
+  },
+  generatePaymentDetails = function(sender, payments) {
+    var
+      // out
+      outData = getTxOutData(payments),
+      outDataValid = outData.valid,
+      totalOut = (outDataValid && outData.total) || 0,
+      txOuts = (outDataValid && outData.payees) || [],
+      // in
+      inData = getTxInData(totalOut),
+      inDataValid = inData.valid,
+      totalIn = (inDataValid && inData.total) || 0,
+      txIns = (inDataValid && inData.payers) || [],
+      // any extra?
+      extra = totalIn - totalOut,
+      refund = extra > 0 ? [txOut(sender.publicKey, extra)] : [], 
+      totalsValid = totalIn === (totalOut + extra),
+      // result
+      resultValid = outDataValid && inDataValid && totalsValid,
+      result = {
+        "txIns": txIns,
+        "txOuts": txOuts.concat(refund),
+        "valid": resultValid
+      };
+    //console.log("generatePaymentDetails", result);
+    return result;
+  },
+  addTransaction = function(newTxn) {
+    //console.log("addTransaction", newTxn);
+    var 
+      valid = validTransaction(newTxn);
+    if (valid) {
+      todoTransactions.push(newTxn);
+    }
+    return valid;
+  },
+  getTransactions = function(address, blockIndex) {
+    //console.log("getTransactions = function(", address, ", ", blockIndex, ")");
+    var 
+      coinBaseTxn = getCoinbaseTransaction(address, blockIndex),
+      validCoinBaseTxn = validCoinbaseTxn(coinBaseTxn, blockIndex),
+      todos = todoTransactions.slice(0),
+      result = [
+        validCoinBaseTxn && coinBaseTxn
+        // add any pending "unconfirmed" transactions:
+      ].concat(todos);
+    
+    return result;
+  },
+  transactionAPI = {
+    "getNewTransaction": getNewTransaction,
+    "getCoinbaseTransaction": getCoinbaseTransaction,
+    "getTransactions": getTransactions,
+    "updateUnspentTxOuts": updateUnspentTxOuts,
+    "addTransaction": addTransaction
+  };
+
+module.exports = transactionAPI;
+/*
+transaction = {
     // sender & receiver are both identities
     "create": function(sender, receiver, amount) {
       var
@@ -273,7 +408,5 @@ var
 
       return transaction;
     }
-  };
-
-module.exports = transaction;
-
+  },
+  */

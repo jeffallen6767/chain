@@ -2,6 +2,7 @@
 module.exports = {
   "block":require("./src/block.js"),
   "blockHeader":require("./src/blockHeader.js"),
+  "cuda":require("./src/cuda.js"),
   "hash":require("./src/hash.js"),
   "miner":require("./src/miner.js"),
   "transaction":require("./src/transaction.js"),

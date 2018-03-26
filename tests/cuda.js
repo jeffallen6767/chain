@@ -5,8 +5,9 @@ var
       test.startTime();
       chain.cuda.start({
         "testing": true,
-        "ready": function() {
+        "ready": function(CUDA_INFO) {
           test.endTime();
+          console.log("CUDA_INFO", CUDA_INFO);
           test.assert.identical(
             1, 
             1,

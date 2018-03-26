@@ -8,82 +8,93 @@ var
   CUDA_TEST_SCRIPT = './cuda/test/test.exe',
   CUDA_TEST_OUT = './cuda/test/output.txt',
   CUDA_TEST_ERR = './cuda/test/error.txt',
-  
+  /////////////////////////////////////////////////
   TEXT = {
     "EMPTY": "",
     "NEW_LINE": "\r\n"
   },
-  PARSER = {
+  PARSER = [
+    ["DRIVER_RUNTIME",/CUDA Driver Version \/ Runtime Version\s+(\d+.\d+)\s\/\s(\d+.\d+)/,["driver","runtime"]],
+    ["CUDA_CAPABILITY",/CUDA Capability Major\/Minor version number:\s+(\d+.\d+)/,["capability"]],
+    ["TOTAL_GLOBAL_MEMORY",/Total amount of global memory:\s+(\d+) MBytes \((\d+) bytes/,["mem_mbytes","mem_bytes"]],
+    ["CUDA_CORES",/(\d+)\) Multiprocessors, \((\d+)\) CUDA Cores\/MP:\s+(\d+)/,["multiprocessors","cores_per_processor","cuda_cores"]],
+    ["GPU_CLOCK",/GPU Max Clock rate:\s+(\d+) MHz \(([\d.]+) GHz\)/,["gpu_mhz","gpu_ghz"]],
+    ["MEM_CLOCK",/Memory Clock rate:\s+(\d+) Mhz/,["mem_mhz"]],
+    ["MEM_BUS",/Memory Bus Width:\s+(\d+)-bit/,["mem_bus_bits"]],
+    ["L2_CACHE",/L2 Cache Size:\s+(\d+) bytes/,["l2_cache_bytes"]],
+    ["CONSTANT_MEM",/Total amount of constant memory:\s+(\d+) bytes/,["constant_mem_bytes"]],
+    ["SHARED_MEM",/Total amount of shared memory per block:\s+(\d+) bytes/,["shared_mem_per_block"]],
+    ["BLOCK_REGISTERS",/Total number of registers available per block:\s+(\d+)/,["registers_per_block"]],
+    ["WARP_SIZE",/Warp size:\s+(\d+)/,["warp_size"]],
+    ["PROCESSOR_THREADS",/Maximum number of threads per multiprocessor:\s+(\d+)/,["threads_per_processor"]],
+    ["BLOCK_THREADS",/Maximum number of threads per block:\s+(\d+)/,["threads_per_block"]],
+    ["MEM_PITCH",/Maximum memory pitch:\s+(\d+) bytes/,["mem_pitch_bytes"]],
+    ["TEXTURE_ALIGN",/Texture alignment:\s+(\d+) bytes/,["texture_align_bytes"]],
+    ["DRIVER_MODE",/CUDA Device Driver Mode \(TCC or WDDM\):\s+(\w+)/,["driver_mode"]],
+    ["UNIFIED_ADDRESSING",/Device supports Unified Addressing \(UVA\):\s+(\w+)/,["uva"]],
+    ["RESULT",/Result = (\w+)/,["result"]]
+  ].reduce(function(acc, val) {
+    acc[val[0]] = {
+      "regex": val[1],
+      "handle": function(info) {
+        ccd.apply(null,
+          val[2].map(function(key, idx) {
+            return [key, info[idx+1]];
+          })
+        );
+      }
+    };
+    return acc;
+  }, {
     // Detected 1 CUDA Capable device(s)
     "DETECT_DEVICES":{
       "regex": /Detected (\d+) CUDA Capable device/,
       "handle": function(info) {
-        var 
-          num = info[1] - 0;
-        //console.log("DETECT_DEVICES", num);
-        CUDA_INFO.num_devices = num;
+        CUDA_INFO.num_devices = info[1] - 0;
         CUDA_INFO.devices = {};
       }
     },
-    //              Device 0: "GeForce GTX 1060 6GB"
+    // Device 0: "GeForce GTX 1060 6GB"
     "NEW_DEVICE": {
       "regex": /Device (\d+): "([a-zA-Z0-9 ]+)"/,
       "handle": function(info) {
         var 
-          key = info[1],
-          index = key - 0,
-          name = info[2];
-        //console.log("NEW_DEVICE", [].slice.call(arguments));
-        CUDA_CURRENT_DEVICE = {
-          "index": index,
-          "key": key,
-          "name": name
-        };
-        CUDA_INFO.devices[key] = CUDA_CURRENT_DEVICE;
+          key = info[1];
+        CUDA_INFO.devices[key] = CUDA_CURRENT_DEVICE = {};
+        ccd(
+          ["key", key],
+          ["name", info[2]]
+        );
       }
     }
-  },
+  }),
   PARSER_KEYS = Object.keys(PARSER),
   PARSER_NUM_KEYS = PARSER_KEYS.length,
   CUDA_INFO = {},
   CUDA_CURRENT_DEVICE,
-  isCudaInfoLine = function(txt) {
-    if (txt === TEXT.EMPTY) return false;
-    if (txt.slice(-11) === "Starting...") return false;
-    if (txt.slice(0, 19) === " CUDA Device Query ") return false;
-    
-    return true;
+  CUDA_PARSE_DONE,
+  ccd = function() {
+    [].slice.call(arguments).forEach(function(arg) {
+      CUDA_CURRENT_DEVICE[arg[0]] = arg[1];
+    });
   },
   parseCudaInfo = function(txt) {
-    //console.log("parseCudaInfo", txt);
     var 
       lines = txt.split(TEXT.NEW_LINE),
       u,v,w,
       x,y,z;
-    //console.log("lines", lines);
     lines.forEach(function(line, idx) {
-      if (isCudaInfoLine(line) && (idx == 4 || idx == 6)) {
-        
-        for (x=0; x<PARSER_NUM_KEYS; x++) {
-          //console.log("x", x);
-          y = PARSER_KEYS[x];
-          //console.log("y", y);
-          z = PARSER[y];
-          //console.log("z", z);
-          u = z.regex.exec(line);
-          if (u !== null) {
-            console.log("->MATCH", y, idx, line);
-            z.handle(u);
-            break;
-          }
-        }
-        
-        // no match?
-        if (x === PARSER_NUM_KEYS) {
-          console.log("--> NO MATCH FOR cuda info line", idx, line);
+      for (x=0; x<PARSER_NUM_KEYS; x++) {
+        y = PARSER_KEYS[x];
+        z = PARSER[y];
+        u = z.regex.exec(line);
+        if (u !== null) {
+          z.handle(u);
+          break;
         }
       }
     });
+    CUDA_PARSE_DONE = true;
   },
   removeFiles = function() {
     if (fs.existsSync(CUDA_TEST_OUT)) {
@@ -114,9 +125,14 @@ var
         // TODO: maybe handle this better?
         throw err;
       }
-      setTimeout(function() {
-        conf.ready();
-      }, 1000);
+      var next = function() {
+        if (CUDA_PARSE_DONE) {
+          conf.ready(CUDA_INFO);
+        } else {
+          setTimeout(next, 100);
+        }
+      };
+      next();
     });
   },
   // API - start the mining cluster (master controller and the mining slaves)
@@ -148,7 +164,7 @@ var
   },
   // API - stop ( shutdown ) the mining cluster
   stop = function(callback) {
-    console.log("CUDA_INFO", CUDA_INFO);
+    //console.log("CUDA_INFO", CUDA_INFO);
     // disconnect from pm2 service ( we have to do this 1st to fix stdin stdout logging )
     // see: https://github.com/Unitech/pm2/blob/master/lib/API.js#L231
     // the only place this.Client.close is called which is needed to disconnect

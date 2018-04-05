@@ -55,6 +55,7 @@ var
     }, 0);
   },
   resetBlockChain = function() {
+    transaction.resetTransactions();
     blockChain = [];
     return blockChain;
   },

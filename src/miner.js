@@ -261,13 +261,15 @@ var
     // which states you must use pm2.disconnect AFTER you kill it with pm2.killDaemon(errback)
     // see: http://pm2.keymetrics.io/docs/usage/pm2-api/#programmatic-api
     pm2.disconnect(function() {
+      console.log("disconnected....");
       // kill the master controller and all slave miners
       pm2.killDaemon(function() {
+        console.log("daemon killed....");
         // forget our previous slaves:
         allMiners = [];
-        // return control to the caller
-        callback();
       });
+      // return control to the caller
+      callback("done cpu mining...");
     });
   },
   // API - try to mine a new block
@@ -292,19 +294,7 @@ var
       timestamp = utils.getTimeStamp(),
       // mine flag, false == abort mining
       continueMining = true;
-      
-      /*
-      // calculate the transaction data
-      transactionData = utils.getTransactionData(data.transactions || []),
-      // good transactions ( valid )
-      goodTransactionData = transactionData.good,
-      // bad transactions ( invalid )
-      badTransactionData = transactionData.bad,
-      // for hashing debug
-      getBlockHash = utils.getObjectHash;
-      */
-      
-    
+
     // set good transaction data
     data.transactions = transaction.getTransactions(keys.publicKey, index);
     
@@ -313,6 +303,7 @@ var
     
     // save the current difficulty for reporting
     miningStats.difficulty = difficulty;
+    
     // start the periodic reporter:
     startReporting(options.pollInterval || 1000);
     
@@ -329,7 +320,7 @@ var
           // calculate the starting nonce value for this slave
           slave_start_nonce = (nonce + miningSlave.slave_start_offset) % MAX_NUM,
           // zeta is extra data + nonce
-          hexNonce = options.hexNonce = slave_start_nonce.toString(16),
+          hexNonce = options.hexNonce = utils.uInt32ToHex(slave_start_nonce),
           zeta = [miningSlave.extra, hexNonce].join(MINING_OPTIMIZER),
           // create the new block object
           newBlock = {
@@ -366,13 +357,17 @@ var
           optiHasher;
 
         // prepare mining optimizer
+        options.MINING_OPTIMIZER = MINING_OPTIMIZER;
         options.OPTIMIZED_MODE = {
           "parts": [],
           "partition": function(str) {
-            return options.OPTIMIZED_MODE.parts = str.split(MINING_OPTIMIZER + hexNonce);
+            var 
+              parts = options.OPTIMIZED_MODE.parts = str.split(MINING_OPTIMIZER + hexNonce);
+            parts[0] += MINING_OPTIMIZER;
+            return parts;
           },
           "increment": function() {
-            return MINING_OPTIMIZER + miningData.current_nonce.toString(16) + options.OPTIMIZED_MODE.parts[1];
+            return utils.uInt32ToHex(miningData.current_nonce) + options.OPTIMIZED_MODE.parts[1];
           }
         };
         optiHasher = options.OPTIMIZED_MODE.hasher = utils.getOptimalHasher(options.OPTIMIZED_MODE);
@@ -389,6 +384,7 @@ var
           }, function(err, res) {
             if (err) {
               // TODO: maybe handle this better?
+              console.log("err with miningData", miningData);
               throw err;
             }
           });

@@ -1,16 +1,16 @@
-// TEST openCL.js
+// TEST opencl.js
 var 
   tests = {
-    "sync test chain.openCL.test()": function(test, chain) {
+    "sync test chain.opencl.test()": function(test, chain) {
       test.startTime();
-      chain.openCL.test({
+      chain.opencl.test({
         "testing": true,
         "ready": function() {
           test.endTime();
           test.assert.identical(
             1, 
             1,
-            "openCL test"
+            "opencl test"
           );
           test.done();
         }

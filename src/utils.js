@@ -1,5 +1,6 @@
 // utils.js
 var
+  MAX_UINT = 0xffffffff,
   nacl = require("tweetnacl"),
   stringify = require('json-stable-stringify'),
   hasher = require("./hash"),
@@ -50,8 +51,11 @@ var
     var 
       fast_hasher = hasher.keccak.mode("SHA-3-256", null, options || {}),
       hasher_api = {
+        "inst": fast_hasher,
         "prepare": function(obj) {
-          return fast_hasher.init().prepare_optimized(stringify(obj));
+          var
+            input = typeof obj === 'object' ? stringify(obj) : obj;
+          return fast_hasher.init().prepare_optimized(input);
         },
         "digest": fast_hasher.digest
       };
@@ -80,6 +84,11 @@ var
     return Array.from(uInt8Array).map(function(num) {
       return String.fromCharCode(num);
     }).join('');
+  },
+  uInt32sFromUint8s = function(uInt8Array) {
+    return Buffer.from(uInt8Array).toString('hex').match(/.{1,8}/g).map(function(val) {
+      return parseInt(val, 16);
+    });
   },
   createRandomBytes = function(num) {
     return nacl.randomBytes(num);
@@ -145,21 +154,22 @@ var
     );
   },
   getRandomNonce = function() {
-    var max_digits = 15,
-      random_number = Math.floor(Math.random() * max_digits) - max_digits,
-      random_nonce = parseInt(
-        ((Math.random() + "").replace(".", "").slice(random_number))
-      );
-    return random_nonce;
+    return Math.floor(Math.random() * MAX_UINT);
   },
   getTemplatized = function(env, template) {
-    return template.replace(/{{([a-z.]+)}}/ig, function() {
+    return template.replace(/{{([a-z._]+)}}/ig, function() {
       var 
         args = [].slice.call(arguments),
         key = args[1].replace("env.", ''),
         value = env[key];
       return value;
     });
+  },
+  uInt32ToHex = function(val) {
+    var 
+      hex = val.toString(16),
+      len = hex.length;
+    return "00000000".slice(len) + hex;
   },
   utilsAPI = {
     /* pass-throughs */
@@ -176,16 +186,14 @@ var
     "shake256": shake256,
     "getObjectHash": getObjectHash,
     /* buffers and bytes */
+    "charCodes": charCodes,
     "bytes": bytes,
     "intBytes": intBytes,
     "createRandomBytes": createRandomBytes,
     "objToUint8Array": objToUint8Array,
     "hexFromUInt8Array": hexFromUInt8Array,
     "uInt8ArrayFromString": uInt8ArrayFromString,
-    /* transactions
-    "verifyTransaction": verifyTransaction,
-    "getTransactionData": getTransactionData,
-    */
+    "uInt32sFromUint8s": uInt32sFromUint8s,
     /* nacl signatures */
     "getKeyPair": getKeyPair,
     "setKeyPair": setKeyPair,
@@ -196,52 +204,9 @@ var
     "getRandomNonce": getRandomNonce,
     "getTemplatized": getTemplatized,
     "debugHash": debugHash,
-    "getOptimalHasher": getOptimalHasher
+    "getOptimalHasher": getOptimalHasher,
+    "uInt32ToHex": uInt32ToHex
     
   };
   
 module.exports = utilsAPI;
-
-
-/*
-  verifyTransaction = function(transaction) {
-    //console.log("verifyTransaction", transaction);
-    var
-      // verifiy that the transaction came FROM the sender
-      payload = transaction.payload,
-      messageArray = nacl.sign.open(
-        uInt8ArrayFromString(
-          transaction.signedMessage
-        ), 
-        uInt8ArrayFromString(
-          payload.sender
-        )
-      ),
-      result = messageArray && (stringify(payload) === stringFromUint8Array(messageArray));
-    
-    return result;
-  },
-  validTransaction = function(transaction) {
-    return transaction.payload.amount > 0;
-  },
-  getTransactionData = function(transactions) {
-    var
-      result = {
-        "good": [],
-        "bad": []
-      };
-    transactions.forEach(function(transaction, idx) {
-      if (verifyTransaction(transaction) && validTransaction(transaction)) {
-        result.good.push(
-          transaction
-        );
-      } else {
-        result.bad.push(
-          transaction
-        );
-      }
-    });
-    return result;
-  },
-  */
-  

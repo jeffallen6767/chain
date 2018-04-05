@@ -246,7 +246,6 @@ var
       return acc && val;
     }, true);
   },
-
   signTxn = function(txId, sender) {
     var 
       signature = utils.getMessageSignature(
@@ -285,7 +284,6 @@ var
     
     return newTxn;
   },
-  
   getTxOutData = function(payments) {
     var 
       payees = payments.map(function(payment) {
@@ -375,12 +373,17 @@ var
     
     return result;
   },
+  resetTransactions = function() {
+    todoTransactions = [];
+    unspentTxOutputs = [];
+  },
   transactionAPI = {
     "getNewTransaction": getNewTransaction,
     "getCoinbaseTransaction": getCoinbaseTransaction,
     "getTransactions": getTransactions,
     "updateUnspentTxOuts": updateUnspentTxOuts,
-    "addTransaction": addTransaction
+    "addTransaction": addTransaction,
+    "resetTransactions": resetTransactions
   };
 
 module.exports = transactionAPI;

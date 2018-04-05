@@ -21,6 +21,7 @@
     "testing": "https://github.com/jeffallen6767/testing.git"
   },
   "dependencies": {
+    "node-opencl": "^0.4.5",
     "json-stable-stringify": "^1.0.1",
     "keccak-p-js": "https://github.com/jeffallen6767/keccak-p-js.git",
     "pm2": "^2.10.1",

@@ -21,7 +21,11 @@ var
     switch (packet.topic) {
       case 'start-mining':
         // do what the master says, start mining using the received data
-        startMining(packet.data);
+        try {
+          startMining(packet.data);
+        } catch (e) {
+          console.error(e);
+        }
         break;
       case 'stop-mining':
         // reset the mining index ( off position )
@@ -49,10 +53,13 @@ var
     options.OPTIMIZED_MODE = {
       "parts": [],
       "partition": function(str) {
-        return options.OPTIMIZED_MODE.parts = str.split(miningData.optimize_zeta + options.hexNonce);
+        var 
+          parts = options.OPTIMIZED_MODE.parts = str.split(options.MINING_OPTIMIZER + options.hexNonce);
+        parts[0] += options.MINING_OPTIMIZER;
+        return parts;
       },
       "increment": function() {
-        return miningData.optimize_zeta + miningData.current_nonce.toString(16) + options.OPTIMIZED_MODE.parts[1];
+        return utils.uInt32ToHex(miningData.current_nonce) + options.OPTIMIZED_MODE.parts[1];
       }
     };
     options.OPTIMIZED_MODE.hasher = utils.getOptimalHasher(options.OPTIMIZED_MODE);
@@ -132,7 +139,7 @@ var
       packet: {
         perSecond: miningData.perSecond,
         lastHash: miningData.newBlock.hash,
-        lastNonce: miningData.current_nonce.toString(16)
+        lastNonce: utils.uInt32ToHex(miningData.current_nonce)
       }
     });
   },
@@ -143,7 +150,7 @@ var
     // latest zeta
     newBlock.zeta = [
       miningData.slave_extra, 
-      miningData.current_nonce.toString(16)
+      utils.uInt32ToHex(miningData.current_nonce)
     ].join(miningData.optimize_zeta);
 
     miningData.msg = [

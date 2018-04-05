@@ -310,12 +310,13 @@ var
           miningData.elapsed = (timeStamp - miningData.timestamp) / 1000;
           // calculate the # of calls to mineBlock per second
           miningData.perSecond = Math.round(miningData.miningAttempts / miningData.elapsed);
-          // keep trying
+          // update stats
           miningStats.data = {
             timestamp: newBlock.timestamp,
             perSecond: miningData.perSecond,
             lastNonce: utils.uInt32ToHex(miningData.current_nonce)
           };
+          // did we win?
           if (dataview) {
             // success
             // reset current ( -1 = OFF )
@@ -351,6 +352,7 @@ var
             // hand control back to the process that requested we mine...
             doneMining(miningData);
           } else {
+            // keep mining...
             cl.releaseCommandQueue(queue);
             miningData.current_nonce += num_gpu_threads;
             if (miningData.current_nonce > MAX_NUM) {
@@ -364,8 +366,9 @@ var
               cl.releaseMemObject(inBufferMem);
               cl.releaseContext(context);
               setTimeout(prepareToMine, 1);
+            } else {
+              setTimeout(mineOnce, 1);
             }
-            setTimeout(mineOnce, 1);
           }
         };
         mineOnce();

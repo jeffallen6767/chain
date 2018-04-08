@@ -5,7 +5,8 @@ var
   EXPORT_START = "module.exports = {",
   EXPORT_END = "}",
   NEW_LINE = "\n",
-  SPACES = "  ",
+  ONE_SPACE = " ",
+  TWO_SPACES = ONE_SPACE + ONE_SPACE,
   DOUBLE_QUOTE = '"',
   COLON = ":",
   fs = require('fs'),
@@ -24,7 +25,7 @@ files.forEach(function(file) {
     val = "./src/" + file;
   if (fs.statSync(val).isFile()) {
     fileLines.push(
-      [SPACES, DOUBLE_QUOTE, key, DOUBLE_QUOTE, COLON, "require(", DOUBLE_QUOTE, val, DOUBLE_QUOTE, "),"].join("")
+      [TWO_SPACES, DOUBLE_QUOTE, key, DOUBLE_QUOTE, COLON, ONE_SPACE, "require(", DOUBLE_QUOTE, val, DOUBLE_QUOTE, "),"].join("")
     );
   }
 });

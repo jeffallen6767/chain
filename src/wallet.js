@@ -10,6 +10,27 @@ var
   basePath = process.cwd(),
   walletPath = path.resolve(basePath, 'data/wallet'),
   KEYS_IGNORE_SAVE = ["bufferKeys"],
+  loadUsers = function(callback) {
+    var 
+      users = [];
+    if (checkDir(walletPath)) {
+      fs.readdir(walletPath, function(err, files) {
+        console.log("loadUsers", walletPath, [].slice.call(arguments));
+        files.forEach(function(file) {
+          var
+            dPath = path.resolve(walletPath, file),
+            res = checkDir(dPath);
+          console.log("loadUsers", dPath, res);
+          if (res) {
+            users.push(file);
+          }
+        });
+        callback(users);
+      });
+    } else {
+      callback(users);
+    }
+  },
   loadFile = function(srcPath, fileName) {
     var
       filePath = path.resolve(srcPath, fileName),
@@ -193,7 +214,8 @@ var
     "load": load,
     "save": save,
     "lock": lock,
-    "unlock": unlock
+    "unlock": unlock,
+    "loadUsers": loadUsers
   };
 
 module.exports = walletAPI;

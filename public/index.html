@@ -31,6 +31,7 @@
   
   <!-- app css -->
   <link href="css/reset.css" rel="stylesheet" type="text/css">
+  <link href="css/signin.css" rel="stylesheet" type="text/css">
   <link href="css/app.css" rel="stylesheet" type="text/css">
 
 </head>
@@ -42,10 +43,6 @@
   
   <div id="root" class="hidden">
 
-    <div id="loading" class="loading">
-      Loading...
-    </div>
-    
     <div id="content" class="hidden">
       content...
     </div>
@@ -56,9 +53,44 @@
       </div>
     </div>
     
+    <div id="loading-template" class="loading">
+      Loading...
+    </div>
+    
+     <div id="signin-template" class="hidden">
+      <div id="accounts">
+        Accounts:
+        <ul>
+        
+        </ul>
+      </div>
+      <form class="form-signin" id="signin-form" novalidate>
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+        <div class="invalid-feedback">
+          Please provide a email address.
+        </div>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <div class="invalid-feedback">
+          Please provide a password.
+        </div>
+        <div class="checkbox">
+          <label>
+            <input id="remember-me" type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="button">Sign in</button>
+      </form>
+    </div>
+    
     
   </div>
-
+  
+  <!-- vendor -->
+  <script src="vendor/js/jquery-3.3.1.min.js"></script>
+  
   <!-- app -->
   <script src="js/app.js"></script>
 
@@ -67,10 +99,11 @@
   Application.init({
     'dom': {
       'root': '#root',
-      'loading': '#loading',
       'content': '#content',
       'message': '#message',
-      'centerpoint': '#centerpoint'
+      'centerpoint': '#centerpoint',
+      'loading-template': '#loading-template',
+      'signin-template': '#signin-template'
     },
     'app': {
     

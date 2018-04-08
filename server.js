@@ -1,6 +1,7 @@
 var
   express = require('express'),
   path = require('path'),
+  chain = require('./index.js'),
   dir = __dirname,
   args = process.argv.slice(),
   staticPath = './public',
@@ -9,6 +10,19 @@ var
       type: 'process:msg',
       data: data
     });
+  },
+  sendJson = function(res, data) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+      JSON.stringify(
+        typeof data === "object"
+          ? data 
+          : {"err": "no data"}
+      )
+    );
+  },
+  loadUsers = function(callback) {
+    return chain.wallet.loadUsers(callback);
   },
   inst = null,
   start = function(ctx, callback) {
@@ -28,7 +42,15 @@ var
     app.get('/', function(req, res){
       res.sendFile(indexPath);
     });
-
+    
+    app.get('/loadUsers', function(req, res){
+      loadUsers(function(data) {
+        sendJson(res, {
+          "users": data
+        });
+      });
+    });
+    
     serverApi.inst = app.listen(port, cbk);
 
     return serverApi.inst;

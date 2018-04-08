@@ -3,6 +3,7 @@ var
   path = require('path'),
   dir = __dirname,
   args = process.argv.slice(),
+  staticPath = './public',
   sendMessage = function(data) {
     process.send({
       type: 'process:msg',
@@ -14,10 +15,12 @@ var
     var 
       app = express(),
       port = ctx.port,
+      staticPath = path.join(dir, ctx.publicFolder),
+      indexPath = path.join(staticPath, ctx.indexFile),
       cbk = typeof callback === 'function' ? callback : function() {
         console.log('Server listening on port ' + port);
       };
-/*
+
     app.use(
       express.static(staticPath)
     );
@@ -25,7 +28,7 @@ var
     app.get('/', function(req, res){
       res.sendFile(indexPath);
     });
-*/
+
     serverApi.inst = app.listen(port, cbk);
 
     return serverApi.inst;
@@ -37,6 +40,7 @@ var
 
 module.exports = serverApi;
 
+// if we're called from the cli in the proper manner, start-up
 if (args.length > 3) {
   if (args[2] === "-s") {
     if (args[3] === "start") {
@@ -45,10 +49,12 @@ if (args.length > 3) {
           port = args[5] - 0;
         }
         serverApi.start({
-          "port": port
+          "port": port,
+          "publicFolder": "public",
+          "indexFile": "index.html"
         }, function() {
           sendMessage({
-            topic: 'ready',
+            topic: 'server-ready',
             success: true,
             packet: args
           });
@@ -57,26 +63,3 @@ if (args.length > 3) {
     }
   }
 }
-
-/*
- [ 'C:\\Program Files\\nodejs\\node.exe',
-     'C:\\Users\\jeffa\\AppData\\Roaming\\npm\\node_modules\\pm2\\lib\\ProcessContainerFork.js',
-     '-s',
-     'start',
-     '-p',
-     '6767' ],
-*/
-/*
-sendMessage({
-  topic: 'ready',
-  success: true,
-  packet: args
-});
-*/
-/*
-args.forEach(function (val, index, array) {
-  console.log(index + ': ' + val);
-});
-
-
-*/

@@ -51,9 +51,9 @@ if (server === "start") {
     // handle each type of message
     switch (topic) {
       // one of the slaves finished mining a block
-      case 'ready':
-        console.log("MESSAGE:ready", data);
-        
+      case 'server-ready':
+        console.log("MESSAGE:server-ready", data);
+        process.exit(0);
         break;
       default:
         
@@ -88,8 +88,7 @@ if (server === "start") {
           // TODO: maybe handle this better?
           throw err;
         }
-        console.log("server started...", apps);
-        process.exit(0);
+        console.log("server started...");
         
       });
       

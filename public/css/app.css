@@ -1,0 +1,127 @@
+
+html,
+body,
+div#root {
+  height: 100vh;
+  width: 100vw;
+  margin: 0px;
+  padding: 0px;
+}
+
+body {
+  font-family: sans-serif;
+  font-size: 1.6em;
+  background-color: #000000;
+  color: #404040;
+}
+
+.hidden {
+	display: none;
+}
+
+.loading {
+  width: 100px;
+  margin: 200px auto 0 auto;
+  font-size: 2em;
+}
+
+div#content {
+  padding: 5px;
+  vertical-align: top;
+  cursor: default;
+}
+
+.column {
+  display: inline-table;
+  background-color: #000000;
+  width: 1vw;
+  padding:0px;
+  margin:0px;
+}
+
+.cell {
+  height: 3vh;
+  width: 1vw;
+  padding:0px;
+  margin:0px;
+  color: #101010;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.blue {
+  color: #ccccff;
+}
+
+.green_0 {
+  color: #001100;
+}
+.green_1 {
+  color: #002200;
+}
+.green_2 {
+  color: #003300;
+}
+.green_3 {
+  color: #004400;
+}
+.green_4 {
+  color: #005500;
+}
+.green_5 {
+  color: #006600;
+}
+.green_6 {
+  color: #007700;
+}
+.green_7 {
+  color: #008800;
+}
+.green_8 {
+  color: #009900;
+}
+.green_9 {
+  color: #00aa00;
+}
+.green_10 {
+  color: #00bb00;
+}
+.green_11 {
+  color: #00cc00;
+}
+.green_12 {
+  color: #00dd00;
+}
+.green_13 {
+  color: #00ee00;
+}
+.green_14 {
+  color: #00ff00;
+}
+
+div#centerpoint {
+  top: 50%;
+  left: 50%;
+  position: absolute;
+}
+
+div#message {
+  position: relative;
+
+  width: 1000px;
+  margin-left: -500px;
+
+  height: 600px;
+  margin-top: -300px;
+  
+  color: #85e221;
+  font-size: 110px;
+  
+  text-shadow:
+		-1px -1px 10px #000,
+		1px -1px 10px #000,
+		-1px 1px 10px #000,
+		1px 1px 10px #000;
+}

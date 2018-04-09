@@ -17,22 +17,10 @@
     "url": "https://github.com/jeffallen6767/chain/issues"
   },
   "homepage": "https://github.com/jeffallen6767/chain#readme",
-  "server_config": {
-    "port": 6767
-  },
-  "web_config": {
-    "port": 3333,
-    "publicFolder": "public",
-    "indexFile": "index.html"
-  },
   "devDependencies": {
     "testing": "https://github.com/jeffallen6767/testing.git"
   },
   "dependencies": {
-    "colors": "^1.2.1",
-    "commander": "^2.15.1",
-    "cross-env": "^5.1.4",
-    "express": "^4.16.3",
     "json-stable-stringify": "^1.0.1",
     "keccak-p-js": "https://github.com/jeffallen6767/keccak-p-js.git",
     "node-opencl": "^0.4.5",

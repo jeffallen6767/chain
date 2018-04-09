@@ -11,7 +11,7 @@ var
   // maximum nonce we can deal with in javascript without issues
   MAX_NUM = Number.MAX_SAFE_INTEGER,
   // path to script we'll use for our cluster of slave miners
-  MINING_SLAVE_SCRIPT = './src/mining/slave.js',
+  MINING_SLAVE_SCRIPT = require.resolve('./mining/slave.js'),
   // a way to optimize mining speed
   MINING_OPTIMIZER = "::",
   // will contain meta data for each slave miner in our cluster

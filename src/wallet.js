@@ -4,6 +4,8 @@ var
   fs = require("fs"),
   utils = require("./utils"),
   crypto = require('crypto'),
+  ASCII_ONE_SPACE = ' ',
+  ASCII_UNDERSCORE = '_',
   KEY_FILE_NAME = "keys",
   DATA_FILE_NAME = "data",
   algorithm = 'AES-256-CBC',
@@ -19,10 +21,11 @@ var
         files.forEach(function(file) {
           var
             dPath = path.resolve(walletPath, file),
+            name = file.replace(/\_/g, ASCII_ONE_SPACE),
             res = checkDir(dPath);
-          console.log("loadUsers", dPath, res);
+          console.log("loadUsers", dPath, res, name);
           if (res) {
-            users.push(file);
+            users.push(name);
           }
         });
         callback(users);

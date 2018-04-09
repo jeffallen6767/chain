@@ -2,8 +2,6 @@
 var 
   // opencl api
   cl = require("node-opencl"),
-  // file system
-  fs = require("fs"),
   // utils for timestamps, transactions, hashing, and templatizing
   utils = require("./utils"),
   // block for managing the blockchain
@@ -18,10 +16,8 @@ var
   MAX_NUM = Number.MAX_SAFE_INTEGER,
   // a way to optimize mining speed
   MINING_OPTIMIZER = "::",
-  // path to script we'll use for mining via opencl
-  MINING_OPENCL_SCRIPT = './src/mining/keccak.cl',
   // load the opencl mining script
-  KERNEL_OPENCL = fs.readFileSync(MINING_OPENCL_SCRIPT, 'utf8'),
+  KERNEL_OPENCL = utils.readFile('./mining/keccak.cl'),
   // MARKER for "number of threads" replacement in opencl mining script
   KERNEL_OPENCL_THREADS = "{{num_threads}}",
   // # of threads to run in opencl mining

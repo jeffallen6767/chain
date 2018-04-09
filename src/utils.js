@@ -1,9 +1,17 @@
 // utils.js
 var
   MAX_UINT = 0xffffffff,
+  // file system
+  fs = require("fs"),
+  // path
+  path = require('path'),
+  // sodium cloride
   nacl = require("tweetnacl"),
+  // stable json
   stringify = require('json-stable-stringify'),
+  // hashing
   hasher = require("./hash"),
+  // mnemonics
   words = require("./words"),
   log = function() {
     console.log(
@@ -15,6 +23,12 @@ var
         }
         return acc;
       }, []).join(' ')
+    );
+  },
+  readFile = function(filePath) {
+    return fs.readFileSync(
+      require.resolve(filePath), 
+      'utf8'
     );
   },
   getTimeStamp = function() {
@@ -178,6 +192,7 @@ var
     "wordsToHex": words.wordsToHex,
     /* internal */
     "log": log,
+    "readFile": readFile,
     "getTimeStamp": getTimeStamp,
     /* hashing */
     "getHash": getHash,

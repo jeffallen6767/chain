@@ -12,26 +12,26 @@ var
   basePath = process.cwd(),
   walletPath = path.resolve(basePath, 'data/wallet'),
   KEYS_IGNORE_SAVE = ["bufferKeys"],
-  loadUsers = function(callback) {
+  loadAccounts = function(callback) {
     var 
-      users = [];
+      accounts = [];
     if (checkDir(walletPath)) {
       fs.readdir(walletPath, function(err, files) {
-        console.log("loadUsers", walletPath, [].slice.call(arguments));
+        console.log("loadAccounts", walletPath, [].slice.call(arguments));
         files.forEach(function(file) {
           var
             dPath = path.resolve(walletPath, file),
             name = file.replace(/\_/g, ASCII_ONE_SPACE),
             res = checkDir(dPath);
-          console.log("loadUsers", dPath, res, name);
+          console.log("loadAccounts", dPath, res, name);
           if (res) {
-            users.push(name);
+            accounts.push(name);
           }
         });
-        callback(users);
+        callback(accounts);
       });
     } else {
-      callback(users);
+      callback(accounts);
     }
   },
   loadFile = function(srcPath, fileName) {
@@ -218,7 +218,7 @@ var
     "save": save,
     "lock": lock,
     "unlock": unlock,
-    "loadUsers": loadUsers
+    "loadAccounts": loadAccounts
   };
 
 module.exports = walletAPI;

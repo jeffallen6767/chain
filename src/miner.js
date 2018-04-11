@@ -252,25 +252,30 @@ var
   },
   // API - stop ( shutdown ) the mining cluster
   stop = function(callback) {
-    // disconnect from pm2 service ( we have to do this 1st to fix stdin stdout logging )
-    // see: https://github.com/Unitech/pm2/blob/master/lib/API.js#L231
-    // the only place this.Client.close is called which is needed to disconnect
-    // the socket we started with the pm2.launchBus call.
-    // see: https://github.com/Unitech/pm2/blob/master/lib/Client.js#L186
-    // this is directly contrary to the posted documentation for the api
-    // which states you must use pm2.disconnect AFTER you kill it with pm2.killDaemon(errback)
-    // see: http://pm2.keymetrics.io/docs/usage/pm2-api/#programmatic-api
-    pm2.disconnect(function() {
-      console.log("disconnected....");
-      // kill the master controller and all slave miners
-      pm2.killDaemon(function() {
-        console.log("daemon killed....");
-        // forget our previous slaves:
-        allMiners = [];
+    var
+      numMiners = allMiners.length,
+      finished = function() {
+        pm2.disconnect(function() {
+          console.log("pm2 disconnected....");
+          // return control to the caller
+          callback("done cpu mining...");
+        });
+      };
+    if (numMiners) {
+      allMiners.forEach(function(miner, idx) {
+        var
+          id = miner.slave_index;
+        pm2.delete(id, function() {
+          console.log("pm2.delete", id, [].slice.call(arguments));
+          if (--numMiners === 0) {
+            allMiners = [];
+            finished();
+          }
+        });
       });
-      // return control to the caller
-      callback("done cpu mining...");
-    });
+    } else {
+      finished();
+    }
   },
   // API - try to mine a new block
   mine = function(options, callback) {

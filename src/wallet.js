@@ -10,11 +10,12 @@ var
   DATA_FILE_NAME = "data",
   algorithm = 'AES-256-CBC',
   basePath = process.cwd(),
-  walletPath = path.resolve(basePath, 'data/wallet'),
+  walletPath = path.resolve(__dirname, '../data/wallet'),
   KEYS_IGNORE_SAVE = ["bufferKeys"],
   loadAccounts = function(callback) {
     var 
       accounts = [];
+    console.log("loadAccounts", walletPath);
     if (checkDir(walletPath)) {
       fs.readdir(walletPath, function(err, files) {
         console.log("loadAccounts", walletPath, [].slice.call(arguments));
@@ -31,6 +32,7 @@ var
         callback(accounts);
       });
     } else {
+      console.error("loadAccounts", walletPath, "is INVALID");
       callback(accounts);
     }
   },

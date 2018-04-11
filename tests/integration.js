@@ -58,12 +58,14 @@ var
         test.startTime();
         
         chain.wallet.load(persona);
-        
+        if (!persona.keys) {
+          chain.wallet.create(persona);
+        }
         chain.wallet.unlock(persona);
         
         test.endTime();
         
-        //log("persona", persona);
+        log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(

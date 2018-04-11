@@ -11,31 +11,6 @@ var
   algorithm = 'AES-256-CBC',
   basePath = process.cwd(),
   walletPath = path.resolve(__dirname, '../data/wallet'),
-  KEYS_IGNORE_SAVE = ["bufferKeys"],
-  loadAccounts = function(callback) {
-    var 
-      accounts = [];
-    console.log("loadAccounts", walletPath);
-    if (checkDir(walletPath)) {
-      fs.readdir(walletPath, function(err, files) {
-        console.log("loadAccounts", walletPath, [].slice.call(arguments));
-        files.forEach(function(file) {
-          var
-            dPath = path.resolve(walletPath, file),
-            name = file.replace(/\_/g, ASCII_ONE_SPACE),
-            res = checkDir(dPath);
-          console.log("loadAccounts", dPath, res, name);
-          if (res) {
-            accounts.push(name);
-          }
-        });
-        callback(accounts);
-      });
-    } else {
-      console.error("loadAccounts", walletPath, "is INVALID");
-      callback(accounts);
-    }
-  },
   loadFile = function(srcPath, fileName) {
     var
       filePath = path.resolve(srcPath, fileName),
@@ -121,7 +96,9 @@ var
     return persona;
   },
   createPersonaDataFile = function(persona) {
-    persona.data = {};
+    persona.data = {
+      "index": existingAccounts.length
+    };
     return persona;
   },
   /* save */
@@ -137,11 +114,68 @@ var
     saveFile(persona.dir, persona.dataFilePath, strData);
     return persona;
   },
+  allAccounts = {},
+  existingAccounts = fs.readdirSync(walletPath).filter(function(file) {
+    var
+      dPath = path.resolve(walletPath, file),
+      name = file.replace(/\_/g, ASCII_ONE_SPACE),
+      res = checkDir(dPath),
+      persona = {
+        "name": name
+      };
+    //console.log("existingAccounts", dPath, res, name);
+    if (res) {
+      allAccounts[name] = persona;
+      return true;
+    } else {
+      return false;
+    }
+  }),
+  loadAccounts = function(callback) {
+    var 
+      accounts = [];
+    //console.log("loadAccounts", walletPath);
+    if (checkDir(walletPath)) {
+      fs.readdir(walletPath, function(err, files) {
+        console.log("loadAccounts", walletPath, [].slice.call(arguments));
+        files.forEach(function(file) {
+          var
+            dPath = path.resolve(walletPath, file),
+            name = file.replace(/\_/g, ASCII_ONE_SPACE),
+            res = checkDir(dPath),
+            persona = {
+              "name": name
+            };
+          //console.log("loadAccounts", dPath, res, name);
+          if (res) {
+            accounts.push(
+              load(persona)
+            );
+          }
+        });
+        // sort by data.index
+        callback(accounts.sort(function(a,b) {
+          return a.data.index - b.data.index;
+        }));
+      });
+    } else {
+      console.error("loadAccounts", walletPath, "is INVALID");
+      callback(accounts);
+    }
+  },
   /* api */
+  create = function(persona) {
+    persona.dir = getPersonaDir(persona);
+    createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
+    createPersonaDataFile(persona) && savePersonaDataFile(persona);
+    allAccounts[persona.name] = persona;
+    existingAccounts.push(persona);
+    return persona;
+  },
   load = function(persona) {
     persona.dir = getPersonaDir(persona);
-    loadPersonaKeyFile(persona) || (createPersonaKeyFile(persona) && savePersonaKeyFile(persona));
-    loadPersonaDataFile(persona) || (createPersonaDataFile(persona) && savePersonaDataFile(persona));
+    loadPersonaKeyFile(persona);
+    loadPersonaDataFile(persona);
     return persona;
   },
   save = function(persona) {
@@ -216,6 +250,7 @@ var
     return utils.stringify(persona.keys);
   },
   walletAPI = {
+    "create": create,
     "load": load,
     "save": save,
     "lock": lock,

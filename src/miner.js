@@ -8,6 +8,8 @@ var
   block = require("./block"),
   // transaction for managing the transactions
   transaction = require("./transaction"),
+  // pm2 meta info
+  pm2_meta_info = null,
   // maximum nonce we can deal with in javascript without issues
   MAX_NUM = Number.MAX_SAFE_INTEGER,
   // path to script we'll use for our cluster of slave miners
@@ -230,11 +232,20 @@ var
       // use any passed configuration options
       config = conf || {},
       // once the master control starts, we'll go here next
-      callback = function(err) {
+      callback = function(err, meta) {
         if (err) {
           // TODO: handle this better?
           console.error(err);
         } else {
+          /*
+          meta = {
+              "new_pm2_instance":false,
+              "pm2_home":"C:\\Users\\jeffa\\.pm2",
+              "pub_socket_file":"\\\\.\\pipe\\pub.sock",
+              "rpc_socket_file":"\\\\.\\pipe\\rpc.sock"
+          }
+          */
+          pm2_meta_info = meta;
           // master control is online, start filling the cluster with slave miners
           startSlaves(config);
         }
@@ -256,10 +267,31 @@ var
       numMiners = allMiners.length,
       finished = function() {
         pm2.disconnect(function() {
-          console.log("pm2 disconnected....");
+          //console.log("-------------------------->>>> pm2 disconnected....", pm2_meta_info.new_pm2_instance, [].slice.call(arguments));
           // return control to the caller
           callback("done cpu mining...");
+          if (pm2_meta_info.new_pm2_instance) {
+            // if we started it, we stop it
+            setTimeout(function() {
+              pm2.killDaemon(function() {
+                // noop
+              });
+            }, 1000);
+          }
         });
+        /*
+        if (pm2_meta_info.new_pm2_instance) {
+          // if we started it, we stop it
+          
+          
+        } else {
+          pm2.disconnect(function() {
+            console.log("-------------------------->>>> pm2 disconnected....", pm2_meta_info.new_pm2_instance, [].slice.call(arguments));
+            // return control to the caller
+            callback("done cpu mining...");
+          });
+        }
+        */
       };
     if (numMiners) {
       allMiners.forEach(function(miner, idx) {

@@ -80,14 +80,6 @@ var
     persona.data = persona.data && JSON.parse(persona.data);
     return persona.data;
   },
-  loadPersonaKeyFile = function(persona) {
-    persona.meta.keyFilePath = getKeyFilePath(persona.meta.dir);
-    return loadKeyFile(persona);
-  },
-  loadPersonaDataFile = function(persona) {
-    persona.meta.dataFilePath = getDataFilePath(persona.meta.dir);
-    return loadDataFile(persona);
-  },
   /* create */
   createPersonaKeyFile = function(persona) {
     persona.keys = persona.keys || {};
@@ -170,8 +162,14 @@ var
     }
   },
   initPersona = function(persona) {
+    var 
+      dir = getPersonaDir(persona),
+      dataFilePath = getDataFilePath(dir),
+      keyFilePath = getKeyFilePath(dir);
     persona.meta = {
-      "dir": getPersonaDir(persona)
+      "dir": dir,
+      "dataFilePath": dataFilePath,
+      "keyFilePath": keyFilePath
     };
   },
   /* api */
@@ -185,8 +183,8 @@ var
   },
   load = function(persona) {
     initPersona(persona);
-    loadPersonaKeyFile(persona);
-    loadPersonaDataFile(persona);
+    loadKeyFile(persona);
+    loadDataFile(persona);
     return persona;
   },
   save = function(persona) {
@@ -228,9 +226,18 @@ var
     return utils.stringify(persona.keys);
   },
   unlock = function(persona) {
-    if (persona.keys.privateKey || !persona.pass || !persona.pass.length) {
-      return false;
+    var 
+      result = false;
+    if (!persona.keys.privateKey && persona.pass && persona.pass.length) {
+      try {
+        result = _unlock(persona);
+      } catch (err) {
+        console.error("wallet.unlock", "user[" + persona.name + "] pass[" + persona.pass + "]", err.message);
+      }
     }
+    return result;
+  },
+  _unlock = function(persona) {
     var 
       password_hash = utils.shake128(
         utils.sha256(persona.pass), 
@@ -239,13 +246,17 @@ var
       shake = utils.shake256(password_hash, 16),
       iv = utils.uInt8ArrayFromString(shake),
       decipher = crypto.createDecipheriv(algorithm, password_hash, iv),
-      privateKey = decipher.update(
-        persona.keys.locked, 
-        'hex', 
-        'utf8'
-      ) + decipher.final('utf8'),
+      privateKey,
       mnemonic;
-    decipher = crypto.createDecipheriv(algorithm, password_hash, iv),
+    
+    privateKey = decipher.update(
+      persona.keys.locked, 
+      'hex', 
+      'utf8'
+    ) + decipher.final('utf8');
+    
+    decipher = crypto.createDecipheriv(algorithm, password_hash, iv);
+    
     mnemonic = decipher.update(
       persona.keys.mnemonic, 
       'hex', 
@@ -257,7 +268,9 @@ var
       "privateKey": privateKey,
       "mnemonic": mnemonic
     };
+    
     utils.setKeyPair(persona);
+    
     return utils.stringify(persona.keys);
   },
   walletAPI = {

@@ -279,19 +279,6 @@ var
             }, 1000);
           }
         });
-        /*
-        if (pm2_meta_info.new_pm2_instance) {
-          // if we started it, we stop it
-          
-          
-        } else {
-          pm2.disconnect(function() {
-            console.log("-------------------------->>>> pm2 disconnected....", pm2_meta_info.new_pm2_instance, [].slice.call(arguments));
-            // return control to the caller
-            callback("done cpu mining...");
-          });
-        }
-        */
       };
     if (numMiners) {
       allMiners.forEach(function(miner, idx) {

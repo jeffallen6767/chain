@@ -14,6 +14,8 @@ var
   OPENCL_DEVICE_ID = null,
   // maximum nonce we can deal with in javascript without issues
   MAX_NUM = Number.MAX_SAFE_INTEGER,
+  // one space characterSet
+  ASCII_ONE_SPACE = ' ',
   // a way to optimize mining speed
   MINING_OPTIMIZER = "::",
   // load the opencl mining script
@@ -396,7 +398,7 @@ var
       'opencl mining device:',
       cl.getDeviceInfo(device, cl.DEVICE_VENDOR).trim(),
       cl.getDeviceInfo(device, cl.DEVICE_NAME)
-    ].join('');
+    ].join(ASCII_ONE_SPACE);
     
     console.log("OPENCL_DEVICE_ID", OPENCL_DEVICE_ID);
     

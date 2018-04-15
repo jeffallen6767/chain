@@ -67,21 +67,25 @@ var
   },
   /* load */
   loadKeyFile = function(persona) {
-    persona.keys = checkDir(persona.dir) && loadFile(persona.dir, persona.keyFilePath);
+    var 
+      personaDir = persona.meta.dir;
+    persona.keys = checkDir(personaDir) && loadFile(personaDir, persona.meta.keyFilePath);
     persona.keys = persona.keys && JSON.parse(persona.keys);
     return persona.keys;
   },
   loadDataFile = function(persona) {
-    persona.data = checkDir(persona.dir) && loadFile(persona.dir, persona.dataFilePath);
+    var 
+      personaDir = persona.meta.dir;
+    persona.data = checkDir(personaDir) && loadFile(personaDir, persona.meta.dataFilePath);
     persona.data = persona.data && JSON.parse(persona.data);
     return persona.data;
   },
   loadPersonaKeyFile = function(persona) {
-    persona.keyFilePath = getKeyFilePath(persona.dir);
+    persona.meta.keyFilePath = getKeyFilePath(persona.meta.dir);
     return loadKeyFile(persona);
   },
   loadPersonaDataFile = function(persona) {
-    persona.dataFilePath = getDataFilePath(persona.dir);
+    persona.meta.dataFilePath = getDataFilePath(persona.meta.dir);
     return loadDataFile(persona);
   },
   /* create */
@@ -104,14 +108,16 @@ var
   /* save */
   savePersonaKeyFile = function(persona) {
     var
+      meta = persona.meta,
       strData = lock(persona);
-    saveFile(persona.dir, persona.keyFilePath, strData);
+    saveFile(meta.dir, meta.keyFilePath, strData);
     return persona;
   },
   savePersonaDataFile = function(persona) {
     var
+      meta = persona.meta,
       strData = utils.stringify(persona.data);
-    saveFile(persona.dir, persona.dataFilePath, strData);
+    saveFile(meta.dir, meta.dataFilePath, strData);
     return persona;
   },
   allAccounts = {},
@@ -163,9 +169,14 @@ var
       callback(accounts);
     }
   },
+  initPersona = function(persona) {
+    persona.meta = {
+      "dir": getPersonaDir(persona)
+    };
+  },
   /* api */
   create = function(persona) {
-    persona.dir = getPersonaDir(persona);
+    initPersona(persona);
     createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
     createPersonaDataFile(persona) && savePersonaDataFile(persona);
     allAccounts[persona.name] = persona;
@@ -173,7 +184,7 @@ var
     return persona;
   },
   load = function(persona) {
-    persona.dir = getPersonaDir(persona);
+    initPersona(persona);
     loadPersonaKeyFile(persona);
     loadPersonaDataFile(persona);
     return persona;

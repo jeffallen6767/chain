@@ -7,6 +7,20 @@
     "build": "node build.js",
     "test": "node test.js"
   },
+  "config": {
+    "production": {
+      "folder": "./data/production"
+    },
+    "qa": {
+      "folder": "./data/qa"
+    },
+    "dev": {
+      "folder": "./data/dev"
+    },
+    "test": {
+      "folder": "./data/test"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeffallen6767/chain.git"

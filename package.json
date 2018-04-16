@@ -4,21 +4,31 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js",
     "test": "node test.js"
   },
   "config": {
     "production": {
-      "folder": "./data/production"
+      "data": {
+        "path": "./data/production"
+      }
     },
     "qa": {
-      "folder": "./data/qa"
+      "data": {
+        "path": "./data/qa"
+      }
     },
     "dev": {
-      "folder": "./data/dev"
+      "data": {
+        "path": "./data/dev"
+      }
     },
     "test": {
-      "folder": "./data/test"
+      "data": {
+        "path": "./data/test"
+      },
+      "tests": {
+        "path": "./tests"
+      }
     }
   },
   "repository": {

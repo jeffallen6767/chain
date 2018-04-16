@@ -1,8 +1,9 @@
 var 
-  context = require("./index"),
+  config = require("./package.json").config.test,
+  context = require("./index.js").init(config),
   tester = require("testing"),
   fs = require("fs"),
-  testDir = "./tests",
+  testDir = config.tests.path,
   files = fs.readdirSync(testDir),
   tests = {},
   args = [].slice.call(process.argv),

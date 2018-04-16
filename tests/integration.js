@@ -1,7 +1,5 @@
 // INTEGRATION TESTS
 var 
-  utils = require('../src/utils'),
-  log = utils.log,
   miners = {
     "opencl": {
       "type": "opencl",
@@ -65,7 +63,7 @@ var
         
         test.endTime();
         
-        log("persona", persona);
+        chain.utils.log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(
@@ -142,7 +140,7 @@ miningKeys.forEach(function(mKey) {
         test.endTime();
         
         console.log(msg);
-        console.log(utils.stringify(newBlock));
+        console.log(chain.utils.stringify(newBlock));
         
         // test that previousHash is null
         test.assert.identical(
@@ -202,7 +200,7 @@ miningKeys.forEach(function(mKey) {
         test.endTime();
         
         console.log(msg);
-        console.log(utils.stringify(newBlock));
+        console.log(chain.utils.stringify(newBlock));
         
         // 1 - test that # of transactions is correct
         test.assert.identical(

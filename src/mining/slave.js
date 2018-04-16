@@ -1,7 +1,10 @@
 // slave.js - a slave miner that runs in a cluster controlled by a master node
 var 
-  // we need utils for timestamps and hashing
-  utils = require('../utils'),
+  path = require("path"),
+  // context has to be set-up later via index.js and config
+  context,
+  // config will come from parent process via msg
+  config,
   // when this slave came online
   start = Date.now(),
   // mining flag that shows when we've found a good hash
@@ -19,6 +22,20 @@ var
   getMessage = function(packet) {
     // what type of message did we get?
     switch (packet.topic) {
+      case 'config':
+        // set config to our passed configuration
+        config = packet.data;
+        // calculate a path for "context" in this thread
+        var mypath = path.resolve(config.path, "./index.js");
+        // get context with config
+        context = require(mypath).init(config);
+        // let the mining master know we've finished config set-up
+        sendMessage({
+          topic: 'finished-config',
+          success: true,
+          packet: {"mypath": mypath, "context": typeof context, "config": config}
+        });
+        break;
       case 'start-mining':
         // do what the master says, start mining using the received data
         try {
@@ -49,6 +66,7 @@ var
   setOptimizer = function(miningData) {
     // prepare mining optimizer
     var 
+      utils = context.utils,
       options = miningData.options;
     options.OPTIMIZED_MODE = {
       "parts": [],
@@ -124,7 +142,7 @@ var
   updateProgress = function(miningData) {
     var 
       // get the current time
-      time = utils.getTimeStamp();
+      time = context.utils.getTimeStamp();
     // set the last report time to the current time
     miningData.lastReportTime = time;
     // calculate the elapsed time from current - start ( milliseconds )
@@ -139,7 +157,7 @@ var
       packet: {
         perSecond: miningData.perSecond,
         lastHash: miningData.newBlock.hash,
-        lastNonce: utils.uInt32ToHex(miningData.current_nonce)
+        lastNonce: context.utils.uInt32ToHex(miningData.current_nonce)
       }
     });
   },
@@ -150,7 +168,7 @@ var
     // latest zeta
     newBlock.zeta = [
       miningData.slave_extra, 
-      utils.uInt32ToHex(miningData.current_nonce)
+      context.utils.uInt32ToHex(miningData.current_nonce)
     ].join(miningData.optimize_zeta);
 
     miningData.msg = [
@@ -174,6 +192,7 @@ var
   // try to mine a block
   mineBlock = function(miningData) {
     var
+      utils = context.utils,
       // the block we're trying to mine
       newBlock = miningData.newBlock,
       // slice off (difficulty) characters from start of hash

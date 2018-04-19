@@ -18,19 +18,19 @@ var
   ids = [
     {
       "name": "jeff allen",
-      "pass": "This is my super secret passphrase...that only I know!"
+      "pass": "jeffpass"
     },
     {
       "name": "joe schmoe",
-      "pass": "Some other secret that only joe knows..."
+      "pass": "joepass"
     },
     {
       "name": "Julie Schmoolie",
-      "pass": "She has another secret..."
+      "pass": "juliepass"
     },
     {
       "name": "Fred Rocker",
-      "pass": "Rock n roll will never die..."
+      "pass": "fredpass"
     }
   ],
 

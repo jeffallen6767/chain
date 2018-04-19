@@ -77,6 +77,8 @@ function getModule(context, config) {
 }
 
 module.exports = {
+  // we require the "transaction" module
+  "require": ["transaction"],
   "init": function(context, config) {
     return getModule(context, config);
   }

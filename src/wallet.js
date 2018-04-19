@@ -9,7 +9,6 @@ function getModule(context, config) {
     KEY_FILE_NAME = "keys",
     DATA_FILE_NAME = "data",
     algorithm = 'AES-256-CBC',
-    //walletPath = path.resolve(__dirname, '../data/wallet'),
     loadFile = function(srcPath, fileName) {
       var
         filePath = path.resolve(srcPath, fileName),
@@ -94,7 +93,7 @@ function getModule(context, config) {
     },
     createPersonaDataFile = function(persona) {
       persona.data = {
-        "index": existingAccounts.length
+        "index": accounts.length
       };
       return persona;
     },
@@ -113,38 +112,7 @@ function getModule(context, config) {
       saveFile(meta.dir, meta.dataFilePath, strData);
       return persona;
     },
-    loadAccounts = function(callback) {
-      var 
-        accounts = [];
-      //console.log("loadAccounts", walletPath);
-      if (checkDir(walletPath)) {
-        fs.readdir(walletPath, function(err, files) {
-          console.log("loadAccounts", walletPath, [].slice.call(arguments));
-          files.forEach(function(file) {
-            var
-              dPath = path.resolve(walletPath, file),
-              name = file.replace(/\_/g, ASCII_ONE_SPACE),
-              res = checkDir(dPath),
-              persona = {
-                "name": name
-              };
-            //console.log("loadAccounts", dPath, res, name);
-            if (res) {
-              accounts.push(
-                load(persona)
-              );
-            }
-          });
-          // sort by data.index
-          callback(accounts.sort(function(a,b) {
-            return a.data.index - b.data.index;
-          }));
-        });
-      } else {
-        console.error("loadAccounts", walletPath, "is INVALID");
-        callback(accounts);
-      }
-    },
+    
     initPersona = function(persona) {
       var 
         dir = getPersonaDir(persona),
@@ -158,22 +126,38 @@ function getModule(context, config) {
     },
     /* api */
     create = function(persona) {
-      initPersona(persona);
-      createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
-      createPersonaDataFile(persona) && savePersonaDataFile(persona);
-      allAccounts[persona.name] = persona;
-      existingAccounts.push(persona);
+      var
+        name = persona.name;
+      if (accountMap[name]) {
+        console.error("Wallet.js, create", name, "already exists...");
+        persona = accountMap[name];
+      } else {
+        initPersona(persona);
+        createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
+        createPersonaDataFile(persona) && savePersonaDataFile(persona);
+        setPersona(persona);
+      }
       return persona;
     },
     load = function(persona) {
-      initPersona(persona);
-      loadKeyFile(persona);
-      loadDataFile(persona);
+      var
+        name = persona.name;
+      
+      if (accountMap[name]) {
+        persona = accountMap[name];
+      } else {
+        initPersona(persona);
+        loadKeyFile(persona);
+        loadDataFile(persona);
+      }
+      //console.log("Wallet.js load", name, accountMap[name], persona);
       return persona;
     },
     save = function(persona) {
-      console.log("wallet.save", persona);
-      return savePersonaKeyFile(persona) && savePersonaDataFile(persona);
+      //console.log("wallet.save", persona);
+      savePersonaKeyFile(persona) && savePersonaDataFile(persona);
+      setPersona(persona);
+      return persona;
     },
     lock = function(persona) {
       if (persona.keys.locked) {
@@ -203,11 +187,14 @@ function getModule(context, config) {
       ) + cipher.final('hex');
       
       persona.keys = {
-        "public": persona.keys.publicKey,
+        "publicKey": persona.keys.publicKey,
         "publicBuffer": persona.keys.publicBuffer,
         "locked": lockedKey,
         "mnemonic": mnemonic
       };
+      
+      setPersona(persona);
+      
       return utils.stringify(persona.keys);
     },
     unlock = function(persona) {
@@ -224,6 +211,7 @@ function getModule(context, config) {
     },
     _unlock = function(persona) {
       var 
+        name = persona.name,
         utils = context.utils,
         password_hash = utils.shake128(
           utils.sha256(persona.pass), 
@@ -250,36 +238,41 @@ function getModule(context, config) {
       ) + decipher.final('utf8');
         
       persona.keys = {
-        "publicKey": persona.keys.public,
+        "publicKey": persona.keys.publicKey,
         "privateKey": privateKey,
         "mnemonic": mnemonic
       };
       
       utils.setKeyPair(persona);
       
+      setPersona(persona);
+      
       return utils.stringify(persona.keys);
     },
+    
+    ///////////////////////////////////////////////////
+    loadAccounts = function(callback) {
+      // sort by data.index
+      callback(accounts.sort(function(a,b) {
+        return a.data.index - b.data.index;
+      }));
+    },
+    
+    // ensure paths
     dataPath = path.resolve(config.path, config.data.path),
     ensureDataPath = checkDir(dataPath) || fs.mkdirSync(dataPath),
     walletPath = path.resolve(dataPath, './wallet'),
     ensureWalletPath = checkDir(walletPath) || fs.mkdirSync(walletPath),
-    allAccounts = {},
-    existingAccounts = fs.readdirSync(walletPath).filter(function(file) {
-      var
-        dPath = path.resolve(walletPath, file),
-        name = file.replace(/\_/g, ASCII_ONE_SPACE),
-        res = checkDir(dPath),
-        persona = {
-          "name": name
-        };
-      //console.log("existingAccounts", dPath, res, name);
-      if (res) {
-        allAccounts[name] = persona;
-        return true;
-      } else {
-        return false;
-      }
-    }),
+    
+    // hold accounts
+    accounts = [],
+    accountMap = {},
+    
+    setPersona = function(persona) {
+      console.log("setPersona", persona);
+      accounts[persona.data.index] = persona;
+      accountMap[persona.name] = persona;
+    },
     
     walletAPI = {
       "create": create,
@@ -289,10 +282,27 @@ function getModule(context, config) {
       "unlock": unlock,
       "loadAccounts": loadAccounts
     };
+  
+  // do once on start:
+  fs.readdirSync(walletPath).forEach(function(file) {
+    if (checkDir(path.resolve(walletPath, file))) {
+      setPersona(
+        load({
+          "name": file.replace(/\_/g, ASCII_ONE_SPACE)
+        })
+      );
+    }
+  });
+  
+  console.log("accounts");
+  console.log(accounts);
+  
   return walletAPI;
 }
 
 module.exports = {
+  // we require the 2 modules
+  "require": ["utils", "words"],
   "init": function(context, config) {
     return getModule(context, config);
   }

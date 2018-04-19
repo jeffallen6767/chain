@@ -27,7 +27,8 @@ var
         config = packet.data;
         // calculate a path for "context" in this thread
         var mypath = path.resolve(config.path, "./index.js");
-        // get context with config
+        // get a limited context with config ( we only need utils )
+        config.modules = ["utils"];
         context = require(mypath).init(config);
         // let the mining master know we've finished config set-up
         sendMessage({

@@ -473,6 +473,8 @@ function getModule(context, config) {
 }
 
 module.exports = {
+  // we require the "utils" module
+  "require": ["utils"],
   "init": function(context, config) {
     return getModule(context, config);
   }

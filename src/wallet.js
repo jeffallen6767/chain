@@ -112,45 +112,37 @@ function getModule(context, config) {
       saveFile(meta.dir, meta.dataFilePath, strData);
       return persona;
     },
-    
     initPersona = function(persona) {
-      var 
-        dir = getPersonaDir(persona),
-        dataFilePath = getDataFilePath(dir),
-        keyFilePath = getKeyFilePath(dir);
-      persona.meta = {
-        "dir": dir,
-        "dataFilePath": dataFilePath,
-        "keyFilePath": keyFilePath
-      };
-    },
-    /* api */
-    create = function(persona) {
       var
-        name = persona.name;
-      if (accountMap[name]) {
-        console.error("Wallet.js, create", name, "already exists...");
-        persona = accountMap[name];
-      } else {
-        initPersona(persona);
+        dir,
+        name = persona.name,
+        existing = accountMap[name],
+        missing = typeof existing === "undefined",
+        props = missing ? {
+          "meta": {
+            "dir": dir = getPersonaDir(persona),
+            "dataFilePath": getDataFilePath(dir),
+            "keyFilePath": getKeyFilePath(dir)
+          }
+        } : existing;
+      Object.assign(persona, props);
+      return missing;
+    },
+    create = function(persona) {
+      if (initPersona(persona)) {
         createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
         createPersonaDataFile(persona) && savePersonaDataFile(persona);
         setPersona(persona);
       }
+      //console.log("Wallet.js create", persona);
       return persona;
     },
     load = function(persona) {
-      var
-        name = persona.name;
-      
-      if (accountMap[name]) {
-        persona = accountMap[name];
-      } else {
-        initPersona(persona);
+      if (initPersona(persona)) {
         loadKeyFile(persona);
         loadDataFile(persona);
       }
-      //console.log("Wallet.js load", name, accountMap[name], persona);
+      //console.log("Wallet.js load", persona);
       return persona;
     },
     save = function(persona) {
@@ -198,6 +190,7 @@ function getModule(context, config) {
       return utils.stringify(persona.keys);
     },
     unlock = function(persona) {
+      console.log("unlock", persona);
       var 
         result = false;
       if (!persona.keys.privateKey && persona.pass && persona.pass.length) {
@@ -250,7 +243,6 @@ function getModule(context, config) {
       return utils.stringify(persona.keys);
     },
     
-    ///////////////////////////////////////////////////
     loadAccounts = function(callback) {
       // sort by data.index
       callback(accounts.sort(function(a,b) {
@@ -264,7 +256,7 @@ function getModule(context, config) {
     walletPath = path.resolve(dataPath, './wallet'),
     ensureWalletPath = checkDir(walletPath) || fs.mkdirSync(walletPath),
     
-    // hold accounts
+    // hold existing accounts
     accounts = [],
     accountMap = {},
     
@@ -293,9 +285,6 @@ function getModule(context, config) {
       );
     }
   });
-  
-  console.log("accounts");
-  console.log(accounts);
   
   return walletAPI;
 }

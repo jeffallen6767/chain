@@ -12,16 +12,15 @@ var
       "difficulty": 2,
       "cores": 2,
       "extra": "Mined by: {{env.USERNAME}}@{{env.COMPUTERNAME}} on: {{env.VSCMD_ARG_HOST_ARCH}}"
-    },
-    
+    }
   },
   ids = [
     {
-      "name": "jeff allen",
+      "name": "Jeff Allen",
       "pass": "jeffpass"
     },
     {
-      "name": "joe schmoe",
+      "name": "Joe Schmoe",
       "pass": "joepass"
     },
     {
@@ -77,7 +76,7 @@ var
     }
   };
   
-// set-up all tests for each miner
+// set-up additional tests for each type of miner
 miningKeys.forEach(function(mKey) {
   var 
     setUp = miners[mKey],

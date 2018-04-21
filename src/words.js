@@ -1,4 +1,4 @@
-// word list
+// words.js
 function getModule(context, config) {
   var
     EMPTY_SPACE = "",

@@ -190,7 +190,7 @@ function getModule(context, config) {
       return utils.stringify(persona.keys);
     },
     unlock = function(persona) {
-      console.log("unlock", persona);
+      //console.log("unlock", persona);
       var 
         result = false;
       if (!persona.keys.privateKey && persona.pass && persona.pass.length) {
@@ -261,7 +261,7 @@ function getModule(context, config) {
     accountMap = {},
     
     setPersona = function(persona) {
-      console.log("setPersona", persona);
+      //console.log("setPersona", persona);
       accounts[persona.data.index] = persona;
       accountMap[persona.name] = persona;
     },
@@ -290,7 +290,6 @@ function getModule(context, config) {
 }
 
 module.exports = {
-  // we require the 2 modules
   "require": ["utils", "words"],
   "init": function(context, config) {
     return getModule(context, config);

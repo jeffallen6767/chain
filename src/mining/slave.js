@@ -178,6 +178,8 @@ var
       newBlock.index,
       "] difficulty", 
       miningData.difficulty, 
+      "miningAttempts:",
+      miningData.miningAttempts, 
       "in", 
       miningData.elapsed, 
       "seconds @", 
@@ -185,9 +187,7 @@ var
       "/per second, hash:", 
       newBlock.hash, 
       "zeta:",
-      newBlock.zeta, 
-      "miningAttempts:",
-      miningData.miningAttempts
+      newBlock.zeta
     ].join(" ");
   },
   // try to mine a block

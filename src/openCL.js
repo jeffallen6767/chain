@@ -334,7 +334,9 @@ function getModule(context, config) {
                 "MINED BLOCK[",
                 newBlock.index,
                 "] difficulty", 
-                miningData.difficulty, 
+                miningData.difficulty,
+                "miningAttempts:",
+                miningData.miningAttempts,
                 "in", 
                 miningData.elapsed, 
                 "seconds @", 
@@ -342,9 +344,7 @@ function getModule(context, config) {
                 "/per second, hash:", 
                 newBlock.hash, 
                 "zeta:",
-                newBlock.zeta, 
-                "miningAttempts:",
-                miningData.miningAttempts
+                newBlock.zeta
               ].join(" ");
               // cleanup
               // test release each CL object
@@ -426,7 +426,6 @@ function getModule(context, config) {
 }
 
 module.exports = {
-  // we require the 3 modules
   "require": ["utils", "block", "transaction"],
   "init": function(context, config) {
     return getModule(context, config);

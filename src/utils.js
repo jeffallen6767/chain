@@ -1,5 +1,4 @@
 // utils.js
-// REQUIRES "hash.js" module
 function getModule(context, config) {
   var
     MAX_UINT = 0xffffffff,
@@ -222,7 +221,6 @@ function getModule(context, config) {
 }
 
 module.exports = {
-  // we require the "hash" module
   "require": ["hash"],
   "init": function(context, config) {
     return getModule(context, config);

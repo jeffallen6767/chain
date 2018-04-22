@@ -3,6 +3,10 @@ function getModule(context, config) {
   var 
     // pm2 is used to control the mining cluster
     pm2 = require('pm2'),
+    // from context:
+    utils = context.utils(),
+    block = context.block(),
+    transaction = context.transaction(),
     // pm2 meta info
     pm2_meta_info = null,
     // will be callback when configuring slave
@@ -19,7 +23,7 @@ function getModule(context, config) {
     miningCallback = function() {
       throw new Error(
         "miningCallback:ERROR no miningCallback set!"
-          + context.utils.stringify({
+          + utils.stringify({
               "args": [].slice.call(arguments)
             })
       );
@@ -111,7 +115,7 @@ function getModule(context, config) {
             // reset current ( -1 = OFF )
             currentMiningIndex = -1;
             // add the newly mined block to the blockchain
-            context.block.submitNewBlock(packet.newBlock);
+            block.submitNewBlock(packet.newBlock);
             // inform other slaves to stop trying to mine this block
             miningSlaves(function(miner) {
               var 
@@ -138,13 +142,13 @@ function getModule(context, config) {
           }
           break;
         case 'report-progress':
-          //console.log(context.utils.stringify(message));
+          //console.log(utils.stringify(message));
           miningStats.data[id] = packet;
           break;
         case 'mining-error':
           // TODO: handle mining errors from slave
           console.error("mining-error slave[", id, "]", data.error.code, data.error.stack);
-          console.log(context.utils.stringify(message));
+          console.log(utils.stringify(message));
           break;
         default:
           console.error("messageFromSlave:ERROR uknown topic", topic, message);
@@ -221,7 +225,7 @@ function getModule(context, config) {
                 // create a human-readable handle with some slave specific info
                 handle = name + " @ " + pid + "[ " + pm_id + " ] ( " + slave_start_offset + " )",
                 // create the extra data we can include in a mined block
-                extra = startConfig.extra ? context.utils.getTemplatized(env, startConfig.extra) : '';
+                extra = startConfig.extra ? utils.getTemplatized(env, startConfig.extra) : '';
               
               // this slave's index
               slave.slave_index = pm_id;
@@ -331,9 +335,6 @@ function getModule(context, config) {
     mine = function(options, callback) {
       // data, difficulty, nonce
       var
-        utils = context.utils,
-        block = context.block,
-        transaction = context.transaction,
         // keys
         keys = options.keys,
         // only the data field is required:

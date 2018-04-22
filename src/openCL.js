@@ -3,6 +3,10 @@ function getModule(context, config) {
   var 
     // opencl api
     cl = require("node-opencl"),
+    // from context:
+    utils = context.utils(),
+    block = context.block(),
+    transaction = context.transaction(),
     // environment vars
     env = process.env,
     // device identifier
@@ -16,7 +20,7 @@ function getModule(context, config) {
     // load the opencl mining script
     KERNEL_OPENCL,
     get_KERNEL_OPENCL = function() {
-      return KERNEL_OPENCL = context.utils.readFile('./mining/keccak.cl');
+      return KERNEL_OPENCL = utils.readFile('./mining/keccak.cl');
     },
     // MARKER for "number of threads" replacement in opencl mining script
     KERNEL_OPENCL_THREADS = "{{num_threads}}",
@@ -32,7 +36,7 @@ function getModule(context, config) {
     miningCallback = function() {
       throw new Error(
         "miningCallback:ERROR no miningCallback set!"
-          + context.utils.stringify({
+          + utils.stringify({
               "args": [].slice.call(arguments)
             })
       );
@@ -79,9 +83,6 @@ function getModule(context, config) {
     mine = function(options, callback) {
       // data, difficulty, nonce
       var
-        utils = context.utils,
-        block = context.block,
-        transaction = context.transaction,
         num_gpu_threads = options.cores || KERNEL_OPENCL_NUM_THREADS,
         // keys
         keys = options.keys,

@@ -17,7 +17,20 @@ module.exports = {
       // should we limit module inclusion?
       limitModules = Array.isArray(finalConfig.modules),
       allModules = {},
-      required = [];
+      required = [],
+      inst = function(key) {
+        var 
+          ref = allModules[key];
+        return function getRef() {
+          //console.log("getRef(", key, ")", ref.init, ref.module);
+          if (ref.init) {
+            ref.module = ref.module.init(api, finalConfig);
+            ref.init = false;
+          }
+          //console.log("[", key, "]-->", ref.module);
+          return ref.module;
+        };
+      };
 
     finalConfig.path = basePath;
     
@@ -28,15 +41,18 @@ module.exports = {
         val = path.resolve(srcPath, file),
         module;
       if (fs.statSync(val).isFile()) {
-        module = allModules[key] = require(val);
+        module = allModules[key] = {
+          'init': true,
+          'module': require(val)
+        };
         // if we're limiting modules, build a list of "required" modules
         if (limitModules && finalConfig.modules.indexOf(key) > -1) {
           if (required.indexOf(key) === -1) {
             required.push(key);
           }
           // does this module require any others?
-          if (Array.isArray(module.require)) {
-            module.require.forEach(function(moduleName) {
+          if (Array.isArray(module.module.require)) {
+            module.module.require.forEach(function(moduleName) {
               if (required.indexOf(moduleName) === -1) {
                 required.push(moduleName);
               }
@@ -49,7 +65,9 @@ module.exports = {
     // add required modules, or all of them if we're not limiting
     Object.keys(allModules).forEach(function(key) {
       if (!limitModules || required.indexOf(key) > -1) {
-        api[key] = allModules[key].init(api, finalConfig);
+        //api[key] = allModules[key].init(api, finalConfig);
+        // delay init...
+        api[key] = inst(key);
       }
     });
     

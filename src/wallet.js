@@ -4,46 +4,14 @@ function getModule(context, config) {
     path = require("path"),
     fs = require("fs"),
     crypto = require('crypto'),
+    // from context:
+    utils = context.utils(),
+    words = context.words(),
     ASCII_ONE_SPACE = ' ',
     ASCII_UNDERSCORE = '_',
     KEY_FILE_NAME = "keys",
     DATA_FILE_NAME = "data",
     algorithm = 'AES-256-CBC',
-    loadFile = function(srcPath, fileName) {
-      var
-        filePath = path.resolve(srcPath, fileName),
-        file = checkFile(filePath);
-      if (file) {
-        try {
-          file = fs.readFileSync(filePath, 'utf8');
-        } catch (e) {
-          console.error("loadFile", srcPath, fileName, e);
-        }
-      }
-      return file;
-    },
-    saveFile = function(srcPath, fileName, data) {
-      if (!checkDir(srcPath)) {
-        fs.mkdirSync(srcPath);
-      }
-      try {
-        fs.writeFileSync(fileName, data);
-      } catch (e) {
-        console.error("saveFile", srcPath, fileName, e);
-      }
-    },
-    checkDir = function(dirPath) {
-      return (
-        fs.existsSync(dirPath) &&
-        fs.statSync(dirPath).isDirectory()
-      );
-    },
-    checkFile = function(filePath) {
-      return (
-        fs.existsSync(filePath) &&
-        fs.statSync(filePath).isFile()
-      );
-    },
     getPersonaDir = function(persona) {
       return path.resolve(
         walletPath, 
@@ -67,23 +35,21 @@ function getModule(context, config) {
     loadKeyFile = function(persona) {
       var 
         personaDir = persona.meta.dir;
-      persona.keys = checkDir(personaDir) && loadFile(personaDir, persona.meta.keyFilePath);
+      persona.keys = utils.checkDir(personaDir) && utils.loadFile(personaDir, persona.meta.keyFilePath);
       persona.keys = persona.keys && JSON.parse(persona.keys);
       return persona.keys;
     },
     loadDataFile = function(persona) {
       var 
         personaDir = persona.meta.dir;
-      persona.data = checkDir(personaDir) && loadFile(personaDir, persona.meta.dataFilePath);
+      persona.data = utils.checkDir(personaDir) && utils.loadFile(personaDir, persona.meta.dataFilePath);
       persona.data = persona.data && JSON.parse(persona.data);
       return persona.data;
     },
     /* create */
     createPersonaKeyFile = function(persona) {
-      var
-        utils = context.utils;
       persona.keys = persona.keys || {};
-      persona.keys.mnemonic = persona.keys.mnemonic || context.words.hexToWords(
+      persona.keys.mnemonic = persona.keys.mnemonic || words.hexToWords(
         utils.hexFromUInt8Array(
           utils.createRandomBytes(16)
         )
@@ -102,14 +68,14 @@ function getModule(context, config) {
       var
         meta = persona.meta,
         strData = lock(persona);
-      saveFile(meta.dir, meta.keyFilePath, strData);
+      utils.saveFile(meta.dir, meta.keyFilePath, strData);
       return persona;
     },
     savePersonaDataFile = function(persona) {
       var
         meta = persona.meta,
-        strData = context.utils.stringify(persona.data);
-      saveFile(meta.dir, meta.dataFilePath, strData);
+        strData = utils.stringify(persona.data);
+      utils.saveFile(meta.dir, meta.dataFilePath, strData);
       return persona;
     },
     initPersona = function(persona) {
@@ -156,7 +122,6 @@ function getModule(context, config) {
         return false;
       }
       var
-        utils = context.utils,
         password_hash = utils.shake128(
           utils.sha256(persona.pass), 
           16
@@ -205,7 +170,6 @@ function getModule(context, config) {
     _unlock = function(persona) {
       var 
         name = persona.name,
-        utils = context.utils,
         password_hash = utils.shake128(
           utils.sha256(persona.pass), 
           16
@@ -252,9 +216,9 @@ function getModule(context, config) {
     
     // ensure paths
     dataPath = path.resolve(config.path, config.data.path),
-    ensureDataPath = checkDir(dataPath) || fs.mkdirSync(dataPath),
+    ensureDataPath = utils.checkDir(dataPath) || fs.mkdirSync(dataPath),
     walletPath = path.resolve(dataPath, './wallet'),
-    ensureWalletPath = checkDir(walletPath) || fs.mkdirSync(walletPath),
+    ensureWalletPath = utils.checkDir(walletPath) || fs.mkdirSync(walletPath),
     
     // hold existing accounts
     accounts = [],
@@ -277,7 +241,7 @@ function getModule(context, config) {
   
   // do once on start:
   fs.readdirSync(walletPath).forEach(function(file) {
-    if (checkDir(path.resolve(walletPath, file))) {
+    if (utils.checkDir(path.resolve(walletPath, file))) {
       setPersona(
         load({
           "name": file.replace(/\_/g, ASCII_ONE_SPACE)

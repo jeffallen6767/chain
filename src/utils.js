@@ -10,6 +10,8 @@ function getModule(context, config) {
     nacl = require("tweetnacl"),
     // stable json
     stringify = require('json-stable-stringify'),
+    // from context:
+    hash = context.hash(),
     log = function() {
       console.log(
         [].slice.call(arguments).reduce(function(acc, item) {
@@ -22,6 +24,41 @@ function getModule(context, config) {
         }, []).join(' ')
       );
     },
+    checkDir = function(dirPath) {
+      return (
+        fs.existsSync(dirPath) &&
+        fs.statSync(dirPath).isDirectory()
+      );
+    },
+    checkFile = function(filePath) {
+      return (
+        fs.existsSync(filePath) &&
+        fs.statSync(filePath).isFile()
+      );
+    },
+    loadFile = function(srcPath, fileName) {
+      var
+        filePath = path.resolve(srcPath, fileName),
+        file = checkFile(filePath);
+      if (file) {
+        try {
+          file = fs.readFileSync(filePath, 'utf8');
+        } catch (e) {
+          console.error("loadFile", srcPath, fileName, e);
+        }
+      }
+      return file;
+    },
+    saveFile = function(srcPath, fileName, data) {
+      if (!checkDir(srcPath)) {
+        fs.mkdirSync(srcPath);
+      }
+      try {
+        fs.writeFileSync(fileName, data);
+      } catch (e) {
+        console.error("saveFile", srcPath, fileName, e);
+      }
+    },
     readFile = function(filePath) {
       return fs.readFileSync(
         require.resolve(filePath), 
@@ -32,7 +69,7 @@ function getModule(context, config) {
       return new Date().getTime();
     },
     getHash = function(str, mode, len) {
-      return context.hash.keccak.mode(mode).init().update(str).digest(len);
+      return hash.keccak.mode(mode).init().update(str).digest(len);
     },
     shake128 = function(str, len) {
       return getHash(str, "SHAKE-128", len);
@@ -49,7 +86,7 @@ function getModule(context, config) {
       );
     },
     debugHash = function(obj) {
-      return context.hash.keccak.mode("SHA-3-256").init().update(stringify(obj), null, true).digest(true);
+      return hash.keccak.mode("SHA-3-256").init().update(stringify(obj), null, true).digest(true);
     },
     getOptimalHasher = function(options) {
       options.partition = options.partition || function(str) {
@@ -60,7 +97,7 @@ function getModule(context, config) {
         return '';
       };
       var 
-        fast_hasher = context.hash.keccak.mode("SHA-3-256", null, options || {}),
+        fast_hasher = hash.keccak.mode("SHA-3-256", null, options || {}),
         hasher_api = {
           "inst": fast_hasher,
           "prepare": function(obj) {
@@ -187,6 +224,10 @@ function getModule(context, config) {
       "stringify": stringify,
       /* internal */
       "log": log,
+      "checkDir": checkDir,
+      "checkFile": checkFile,
+      "loadFile": loadFile,
+      "saveFile": saveFile,
       "readFile": readFile,
       "getTimeStamp": getTimeStamp,
       /* hashing */

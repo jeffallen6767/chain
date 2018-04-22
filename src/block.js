@@ -1,6 +1,11 @@
 // block.js
 function getModule(context, config) {
   var
+    path = require("path"),
+    fs = require("fs"),
+    // from context:
+    utils = context.utils(),
+    transaction = context.transaction(),
     // will contain all blocks mined
     blockChain = [],
     // return the next available index for a block
@@ -54,14 +59,21 @@ function getModule(context, config) {
       }, 0);
     },
     resetBlockChain = function() {
-      context.transaction.resetTransactions();
+      transaction.resetTransactions();
       blockChain = [];
       return blockChain;
     },
     submitNewBlock = function(newBlock) {
       blockChain.push(newBlock);
-      context.transaction.updateUnspentTxOuts(newBlock.data.transactions, newBlock.index);
+      transaction.updateUnspentTxOuts(newBlock.data.transactions, newBlock.index);
     },
+    
+    // ensure paths
+    dataPath = path.resolve(config.path, config.data.path),
+    ensureDataPath = utils.checkDir(dataPath) || fs.mkdirSync(dataPath),
+    blockPath = path.resolve(dataPath, './block'),
+    ensureBlockPath = utils.checkDir(blockPath) || fs.mkdirSync(blockPath),
+    
     // the block API
     blockAPI = {
       "getNextIndex": getNextIndex,
@@ -77,7 +89,7 @@ function getModule(context, config) {
 }
 
 module.exports = {
-  "require": ["transaction"],
+  "require": ["utils", "transaction"],
   "init": function(context, config) {
     return getModule(context, config);
   }

@@ -1,10 +1,8 @@
 // slave.js - a slave miner that runs in a cluster controlled by a master node
 var 
   path = require("path"),
-  // context has to be set-up later via index.js and config
-  context,
-  // config will come from parent process via msg
-  config,
+  // set-up later via getMessage 'config'
+  utils,
   // when this slave came online
   start = Date.now(),
   // mining flag that shows when we've found a good hash
@@ -23,18 +21,22 @@ var
     // what type of message did we get?
     switch (packet.topic) {
       case 'config':
-        // set config to our passed configuration
-        config = packet.data;
-        // calculate a path for "context" in this thread
-        var mypath = path.resolve(config.path, "./index.js");
-        // get a limited context with config ( we only need utils )
+        var 
+          // set config to our passed configuration
+          config = packet.data,
+          // calculate a path for "context" in this thread
+          myPath = path.resolve(config.path, "./index.js"),
+          // get a limited context with config ( we only need utils )
+          context;
         config.modules = ["utils"];
-        context = require(mypath).init(config);
+        context = require(myPath).init(config);
+        // set the global ( to this module ) reference
+        utils = context.utils();
         // let the mining master know we've finished config set-up
         sendMessage({
           topic: 'finished-config',
           success: true,
-          packet: {"mypath": mypath, "context": typeof context, "config": config}
+          packet: {"myPath": myPath, "context": typeof context, "config": config}
         });
         break;
       case 'start-mining':
@@ -67,7 +69,6 @@ var
   setOptimizer = function(miningData) {
     // prepare mining optimizer
     var 
-      utils = context.utils,
       options = miningData.options;
     options.OPTIMIZED_MODE = {
       "parts": [],
@@ -143,7 +144,7 @@ var
   updateProgress = function(miningData) {
     var 
       // get the current time
-      time = context.utils.getTimeStamp();
+      time = utils.getTimeStamp();
     // set the last report time to the current time
     miningData.lastReportTime = time;
     // calculate the elapsed time from current - start ( milliseconds )
@@ -158,7 +159,7 @@ var
       packet: {
         perSecond: miningData.perSecond,
         lastHash: miningData.newBlock.hash,
-        lastNonce: context.utils.uInt32ToHex(miningData.current_nonce)
+        lastNonce: utils.uInt32ToHex(miningData.current_nonce)
       }
     });
   },
@@ -169,7 +170,7 @@ var
     // latest zeta
     newBlock.zeta = [
       miningData.slave_extra, 
-      context.utils.uInt32ToHex(miningData.current_nonce)
+      utils.uInt32ToHex(miningData.current_nonce)
     ].join(miningData.optimize_zeta);
 
     miningData.msg = [
@@ -193,7 +194,6 @@ var
   // try to mine a block
   mineBlock = function(miningData) {
     var
-      utils = context.utils,
       // the block we're trying to mine
       newBlock = miningData.newBlock,
       // slice off (difficulty) characters from start of hash

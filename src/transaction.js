@@ -2,6 +2,8 @@
 function getModule(context, config) {
   // max safe int = 9,007,199,254,740,991
   var
+    // from context:
+    utils = context.utils(),
     // TODO: dynamic coinbase amount
     COINBASE_AMOUNT = 50,
     todoTransactions = [],
@@ -104,7 +106,7 @@ function getModule(context, config) {
           acc.push(output.address, output.amount);
           return acc;
         }, []).join(''),
-        txId = context.utils.sha256(strTxIn + strTxOut);
+        txId = utils.sha256(strTxIn + strTxOut);
       return txId;
     },
     validTransaction = function(txn) {//, txOuts
@@ -201,7 +203,7 @@ function getModule(context, config) {
           "validTxnValues:error some of the txIns are invalid in txn ["
             + txn.txId 
             + "] "
-            + context.utils.stringify(txn.txIns)
+            + utils.stringify(txn.txIns)
         );
         return false;
       }
@@ -210,7 +212,6 @@ function getModule(context, config) {
     validTxIn = function(txIn, txn) {
       //console.log("validTxIn", txIn, txn);
       var 
-        utils = context.utils,
         txOut = findUnspentTxOut(
           txIn.txOutId,
           txIn.txOutIdx,
@@ -286,7 +287,7 @@ function getModule(context, config) {
             + ", "
             + txIn.txOutIdx
             + "] "
-            + context.utils.stringify(unspentTxOutputs)
+            + utils.stringify(unspentTxOutputs)
         );
         return false;
       }
@@ -303,7 +304,7 @@ function getModule(context, config) {
           "validateBlockTxns:error invalid coinbase txn for blockIndex ["
             + blockIndex
             + "] "
-            + context.utils.stringify(coinbaseTxn)
+            + utils.stringify(coinbaseTxn)
         );
         return false;
       }
@@ -319,7 +320,7 @@ function getModule(context, config) {
       if (!noDuplicateTxnIns) {
         throw new Error(
           "validateBlockTxns:error txns contain duplicate txIns "
-            + context.utils.stringify(allTxnIns)
+            + utils.stringify(allTxnIns)
         );
         return false;
       }
@@ -332,7 +333,7 @@ function getModule(context, config) {
     },
     signTxn = function(txId, sender) {
       var 
-        signature = context.utils.getMessageSignature(
+        signature = utils.getMessageSignature(
           txId, 
           sender.privateBuffer
         );

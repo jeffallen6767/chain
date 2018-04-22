@@ -50,19 +50,24 @@ var
   miningKeys = Object.keys(miners),
   tests = {
     "create identities": function(test, chain) {
+      
+      var 
+        utils = chain.utils(),
+        wallet = chain.wallet();
+
       // set-up ids
       ids.forEach(function(persona, idx) {
         test.startTime();
         
-        chain.wallet.load(persona);
+        wallet.load(persona);
         if (!persona.keys) {
-          chain.wallet.create(persona);
+          wallet.create(persona);
         }
-        chain.wallet.unlock(persona);
+        wallet.unlock(persona);
         
         test.endTime();
         
-        chain.utils.log("persona", persona);
+        utils.log("persona", persona);
         
         // test that privateKey contains publicKey
         test.assert.identical(
@@ -86,7 +91,8 @@ miningKeys.forEach(function(mKey) {
   tests["reset blockchain" + testKey] = function(test, chain) {
     test.startTime();
     var 
-      emptyBlockchain = chain.block.resetBlockChain();
+      block = chain.block(),
+      emptyBlockchain = block.resetBlockChain();
     
     test.endTime();
     
@@ -102,7 +108,9 @@ miningKeys.forEach(function(mKey) {
   
   tests["start miners" + testKey] = function(test, chain) {
     test.startTime();
-    chain[setUp.type].start({
+    var
+      miner = chain[setUp.type]();
+    miner.start({
       "max": setUp.cores,
       "extra": setUp.extra,
       "testing": true,
@@ -123,10 +131,13 @@ miningKeys.forEach(function(mKey) {
     test.startTime();
     
     var 
+      miner = chain[setUp.type](),
+      transaction = chain.transaction(),
+      utils = chain.utils(),
       user = ids[0],
       keys = user.keys;
     
-    chain[setUp.type].mine({
+    miner.mine({
       "data": data["genesis"], 
       "extra": setUp.extra,
       "difficulty": setUp.difficulty, 
@@ -139,7 +150,7 @@ miningKeys.forEach(function(mKey) {
         test.endTime();
         
         console.log(msg);
-        console.log(chain.utils.stringify(newBlock));
+        console.log(utils.stringify(newBlock));
         
         // test that previousHash is null
         test.assert.identical(
@@ -157,6 +168,10 @@ miningKeys.forEach(function(mKey) {
     test.startTime();
     
     var 
+      block = chain.block(),
+      miner = chain[setUp.type](),
+      transaction = chain.transaction(),
+      utils = chain.utils(),
       user = ids[0],
       keys = user.keys,
       // [0, [[1, 5],[2, 10],[3, 15]]]
@@ -178,15 +193,15 @@ miningKeys.forEach(function(mKey) {
         // {"receiver": receiver.keys.publicKey, "amount": amount}
         return result;
       }),
-      newTransaction = chain.transaction.getNewTransaction(
+      newTransaction = transaction.getNewTransaction(
         sender.keys,
         transactions
       ),
-      added = chain.transaction.addTransaction(newTransaction);
+      added = transaction.addTransaction(newTransaction);
     
     //console.log("-----------> added", added);
     
-    chain[setUp.type].mine({
+    miner.mine({
       "data": {}, 
       "extra": setUp.extra,
       "difficulty": setUp.difficulty, 
@@ -199,7 +214,7 @@ miningKeys.forEach(function(mKey) {
         test.endTime();
         
         console.log(msg);
-        console.log(chain.utils.stringify(newBlock));
+        console.log(utils.stringify(newBlock));
         
         // 1 - test that # of transactions is correct
         test.assert.identical(
@@ -221,15 +236,15 @@ miningKeys.forEach(function(mKey) {
         //console.log("txMap", txMap);
         
         // 2 & 3 - test that each payee made it into the transaction
-        transactions.forEach(function(transaction, idx) {
-          //console.log("transaction", idx, transaction);
+        transactions.forEach(function(txn, idx) {
+          //console.log("transaction", idx, txn);
           var 
-            key = transaction.receiver,
+            key = txn.receiver,
             expectedAmount = txMap[key];
           
           test.assert.identical(
             expectedAmount,
-            transaction.amount,
+            txn.amount,
             "test that payee[" + idx + "] was paid correct amount"
           );
         });
@@ -247,7 +262,7 @@ miningKeys.forEach(function(mKey) {
         // test that previous block hash is correct
         test.assert.identical(
           newBlock.previousHash,
-          chain.block.getBlockByIndex(
+          block.getBlockByIndex(
             newBlock.index - 1
           ).hash,
           "test that previous block hash is correct"
@@ -259,10 +274,12 @@ miningKeys.forEach(function(mKey) {
   
   tests["stop miners" + testKey] = function(test, chain) {
     var 
+      miner = chain[setUp.type](),
       max = 2;
+    
     test.startTime();
     
-    chain[setUp.type].stop(function(txt) {
+    miner.stop(function(txt) {
       console.log("-------------------------> miners stopped....", txt);
       test.endTime();
       test.assert.identical(
@@ -277,11 +294,11 @@ miningKeys.forEach(function(mKey) {
   tests["get balances" + testKey] = function(test, chain) {
     // get identity balance from the blockchain
     test.startTime();
-    //console.log(chain.block);
     var 
-      blockHashes = chain.block.getBlockHashes(),
+      block = chain.block(),
+      blockHashes = block.getBlockHashes(),
       users = ids.map(function(user) {
-        user.balance = chain.block.getUserBalance(user);
+        user.balance = block.getUserBalance(user);
         return user;
       });
     

@@ -78,7 +78,6 @@ function getModule(context, config) {
     blockAPI = {
       "getNextIndex": getNextIndex,
       "getPreviousHash": getPreviousHash,
-      /* "create": create, */
       "getBlockHashes": getBlockHashes,
       "getBlockByIndex": getBlockByIndex,
       "getUserBalance": getUserBalance,

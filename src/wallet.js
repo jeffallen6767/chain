@@ -9,8 +9,8 @@ function getModule(context, config) {
     words = context.words(),
     ASCII_ONE_SPACE = ' ',
     ASCII_UNDERSCORE = '_',
-    KEY_FILE_NAME = "keys",
     DATA_FILE_NAME = "data",
+    KEY_FILE_NAME = "keys",
     algorithm = 'AES-256-CBC',
     getPersonaDir = function(persona) {
       return path.resolve(
@@ -19,26 +19,19 @@ function getModule(context, config) {
       );
     },
     /* get */
-    getKeyFilePath = function(personaDir) {
-      return path.resolve(
-        personaDir, 
-        KEY_FILE_NAME
-      );
-    },
     getDataFilePath = function(personaDir) {
       return path.resolve(
         personaDir, 
         DATA_FILE_NAME
       );
     },
-    /* load */
-    loadKeyFile = function(persona) {
-      var 
-        personaDir = persona.meta.dir;
-      persona.keys = utils.checkDir(personaDir) && utils.loadFile(personaDir, persona.meta.keyFilePath);
-      persona.keys = persona.keys && JSON.parse(persona.keys);
-      return persona.keys;
+    getKeyFilePath = function(personaDir) {
+      return path.resolve(
+        personaDir, 
+        KEY_FILE_NAME
+      );
     },
+    /* load */
     loadDataFile = function(persona) {
       var 
         personaDir = persona.meta.dir;
@@ -46,7 +39,20 @@ function getModule(context, config) {
       persona.data = persona.data && JSON.parse(persona.data);
       return persona.data;
     },
+    loadKeyFile = function(persona) {
+      var 
+        personaDir = persona.meta.dir;
+      persona.keys = utils.checkDir(personaDir) && utils.loadFile(personaDir, persona.meta.keyFilePath);
+      persona.keys = persona.keys && JSON.parse(persona.keys);
+      return persona.keys;
+    },
     /* create */
+    createPersonaDataFile = function(persona) {
+      persona.data = {
+        "index": accounts.length
+      };
+      return persona;
+    },
     createPersonaKeyFile = function(persona) {
       persona.keys = persona.keys || {};
       persona.keys.mnemonic = persona.keys.mnemonic || words.hexToWords(
@@ -57,25 +63,19 @@ function getModule(context, config) {
       utils.setKeyPair(persona);
       return persona;
     },
-    createPersonaDataFile = function(persona) {
-      persona.data = {
-        "index": accounts.length
-      };
-      return persona;
-    },
     /* save */
-    savePersonaKeyFile = function(persona) {
-      var
-        meta = persona.meta,
-        strData = lock(persona);
-      utils.saveFile(meta.dir, meta.keyFilePath, strData);
-      return persona;
-    },
     savePersonaDataFile = function(persona) {
       var
         meta = persona.meta,
         strData = utils.stringify(persona.data);
       utils.saveFile(meta.dir, meta.dataFilePath, strData);
+      return persona;
+    },
+    savePersonaKeyFile = function(persona) {
+      var
+        meta = persona.meta,
+        strData = lock(persona);
+      utils.saveFile(meta.dir, meta.keyFilePath, strData);
       return persona;
     },
     initPersona = function(persona) {
@@ -96,8 +96,8 @@ function getModule(context, config) {
     },
     create = function(persona) {
       if (initPersona(persona)) {
-        createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
         createPersonaDataFile(persona) && savePersonaDataFile(persona);
+        createPersonaKeyFile(persona) && savePersonaKeyFile(persona);
         setPersona(persona);
       }
       //console.log("Wallet.js create", persona);
@@ -105,15 +105,15 @@ function getModule(context, config) {
     },
     load = function(persona) {
       if (initPersona(persona)) {
-        loadKeyFile(persona);
         loadDataFile(persona);
+        loadKeyFile(persona);
       }
       //console.log("Wallet.js load", persona);
       return persona;
     },
     save = function(persona) {
       //console.log("wallet.save", persona);
-      savePersonaKeyFile(persona) && savePersonaDataFile(persona);
+      savePersonaDataFile(persona) && savePersonaKeyFile(persona);
       setPersona(persona);
       return persona;
     },

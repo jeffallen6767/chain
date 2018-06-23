@@ -118,6 +118,7 @@ function getModule(context, config) {
       return persona;
     },
     lock = function(persona) {
+      console.log("wallet.lock", persona);
       if (persona.keys.locked) {
         return false;
       }
@@ -225,7 +226,7 @@ function getModule(context, config) {
     accountMap = {},
     
     setPersona = function(persona) {
-      //console.log("setPersona", persona);
+      console.log("setPersona", persona);
       accounts[persona.data.index] = persona;
       accountMap[persona.name] = persona;
     },

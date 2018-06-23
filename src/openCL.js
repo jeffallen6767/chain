@@ -389,27 +389,34 @@ function getModule(context, config) {
     },
     
     start = function(conf) {
-      var 
-        // create GPU context for this platform
-        platform_spec = [cl.CONTEXT_PLATFORM, cl.getPlatformIDs()[0]],
-        device_spec = cl.DEVICE_TYPE_GPU,
-        context_spec = cl.CONTEXT_DEVICES,
-        opencl_context = cl.createContextFromType(platform_spec, device_spec, null, null);
-        devices = cl.getContextInfo(opencl_context, context_spec),
-        device = devices[0];
-      
-      if (conf.max) {
-        KERNEL_OPENCL_NUM_THREADS = conf.max;
+      try {
+        var 
+          // create GPU context for this platform
+          platform_spec = [cl.CONTEXT_PLATFORM, cl.getPlatformIDs()[0]],
+          device_spec = cl.DEVICE_TYPE_GPU,
+          context_spec = cl.CONTEXT_DEVICES,
+          opencl_context = cl.createContextFromType(platform_spec, device_spec, null, null);
+          devices = cl.getContextInfo(opencl_context, context_spec),
+          device = devices[0];
+        
+        if (conf.max) {
+          KERNEL_OPENCL_NUM_THREADS = conf.max;
+        }
+        
+        OPENCL_DEVICE_ID = [
+          'opencl mining device:',
+          cl.getDeviceInfo(device, cl.DEVICE_VENDOR).trim(),
+          cl.getDeviceInfo(device, cl.DEVICE_NAME)
+        ].join(ASCII_ONE_SPACE);
+        
+        console.log("OPENCL_DEVICE_ID", OPENCL_DEVICE_ID);
+      } catch (err) {
+        console.error("opencl.js error: ", err);
+        console.error(
+          cl
+        );
+        process.exit(-1);
       }
-      
-      OPENCL_DEVICE_ID = [
-        'opencl mining device:',
-        cl.getDeviceInfo(device, cl.DEVICE_VENDOR).trim(),
-        cl.getDeviceInfo(device, cl.DEVICE_NAME)
-      ].join(ASCII_ONE_SPACE);
-      
-      console.log("OPENCL_DEVICE_ID", OPENCL_DEVICE_ID);
-      
       conf.ready(KERNEL_OPENCL_NUM_THREADS);
     },
     

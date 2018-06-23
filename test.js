@@ -8,6 +8,8 @@ var
   tests = {},
   args = [].slice.call(process.argv),
   match = args.length > 2 ? args[2] + ".js" : false;
+  
+console.log(match ? "testing only: " + match : "testing all...");
 
 // iterate over all test files
 files.forEach(function(file) {
